@@ -29,39 +29,45 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-indigo-glow: var(--indigo-glow);
-  --color-mint-glow: var(--mint-glow);
+  --color-teal: var(--teal);
+  --color-copper: var(--copper);
+  --color-aubergine: var(--aubergine);
   --color-kofi: var(--kofi);
   --color-success: var(--success);
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", "Inter", ui-serif, Georgia, serif;
 }
 
 :root {
   --radius: 0.875rem;
-  /* Obsidian dark */
-  --background: oklch(0.16 0.025 270);
-  --foreground: oklch(0.97 0.005 270);
-  --card: oklch(0.21 0.028 270);
-  --card-foreground: oklch(0.97 0.005 270);
-  --popover: oklch(0.21 0.028 270);
-  --popover-foreground: oklch(0.97 0.005 270);
-  --primary: oklch(0.68 0.22 280);
-  --primary-foreground: oklch(0.16 0.025 270);
-  --secondary: oklch(0.25 0.03 270);
-  --secondary-foreground: oklch(0.97 0.005 270);
-  --muted: oklch(0.25 0.03 270);
-  --muted-foreground: oklch(0.7 0.03 270);
-  --accent: oklch(0.85 0.18 175);
-  --accent-foreground: oklch(0.16 0.025 270);
-  --destructive: oklch(0.65 0.22 25);
-  --destructive-foreground: oklch(0.97 0.005 270);
-  --border: oklch(0.3 0.03 270 / 0.6);
-  --input: oklch(0.3 0.03 270 / 0.6);
-  --ring: oklch(0.68 0.22 280);
+  /* Deep charcoal-aubergine base */
+  --background: oklch(0.18 0.025 320);
+  --foreground: oklch(0.96 0.008 80);
+  --aubergine: oklch(0.22 0.035 320);
+  --card: oklch(0.225 0.032 320);
+  --card-foreground: oklch(0.96 0.008 80);
+  --popover: oklch(0.21 0.03 320);
+  --popover-foreground: oklch(0.96 0.008 80);
+  --primary: oklch(0.78 0.07 200); /* muted chrome-teal */
+  --primary-foreground: oklch(0.16 0.02 320);
+  --secondary: oklch(0.27 0.03 320);
+  --secondary-foreground: oklch(0.96 0.008 80);
+  --muted: oklch(0.26 0.025 320);
+  --muted-foreground: oklch(0.72 0.02 60);
+  --accent: oklch(0.78 0.1 75); /* dusted copper/gold */
+  --accent-foreground: oklch(0.16 0.02 320);
+  --destructive: oklch(0.62 0.2 25);
+  --destructive-foreground: oklch(0.97 0.005 320);
+  --border: oklch(0.42 0.04 75 / 0.18);
+  --input: oklch(0.3 0.03 320 / 0.6);
+  --ring: oklch(0.78 0.1 75);
 
-  --indigo-glow: oklch(0.68 0.22 280);
-  --mint-glow: oklch(0.85 0.18 175);
-  --kofi: oklch(0.72 0.2 25);
-  --success: oklch(0.78 0.18 155);
+  --teal: oklch(0.72 0.07 200);          /* #669999-ish */
+  --copper: oklch(0.78 0.11 75);         /* #C5A059-ish */
+  --copper-bright: oklch(0.86 0.13 80);
+  --kofi: oklch(0.78 0.11 75);
+  --success: oklch(0.78 0.14 165);
 }
 
 @layer base {
@@ -72,47 +78,120 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+    font-family: var(--font-sans);
   }
   body {
     background-image:
-      radial-gradient(ellipse 80% 50% at 20% 0%, color-mix(in oklab, var(--indigo-glow) 18%, transparent), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 90% 10%, color-mix(in oklab, var(--mint-glow) 12%, transparent), transparent 60%);
+      radial-gradient(ellipse 70% 45% at 15% 0%, color-mix(in oklab, var(--copper) 14%, transparent), transparent 60%),
+      radial-gradient(ellipse 55% 45% at 95% 8%, color-mix(in oklab, var(--teal) 12%, transparent), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 50% 100%, color-mix(in oklab, var(--aubergine) 80%, transparent), transparent 70%);
     background-attachment: fixed;
+    position: relative;
   }
+  /* Subtle grain/noise overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  body > * { position: relative; z-index: 1; }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
 @layer utilities {
   .glass {
-    background: color-mix(in oklab, var(--card) 55%, transparent);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    border: 1px solid color-mix(in oklab, white 6%, transparent);
+    background: color-mix(in oklab, var(--card) 60%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid color-mix(in oklab, var(--copper) 14%, transparent);
   }
-  .glow-indigo {
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--indigo-glow) 40%, transparent),
-                0 8px 40px -8px color-mix(in oklab, var(--indigo-glow) 60%, transparent);
+  .glass-subtle {
+    background: color-mix(in oklab, var(--card) 45%, transparent);
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    border: 1px solid color-mix(in oklab, white 5%, transparent);
   }
-  .glow-mint {
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--mint-glow) 40%, transparent),
-                0 8px 40px -8px color-mix(in oklab, var(--mint-glow) 55%, transparent);
+  .card-brushed {
+    background:
+      linear-gradient(135deg,
+        color-mix(in oklab, var(--card) 92%, transparent) 0%,
+        color-mix(in oklab, var(--aubergine) 80%, transparent) 100%),
+      repeating-linear-gradient(115deg,
+        color-mix(in oklab, var(--copper) 4%, transparent) 0px,
+        color-mix(in oklab, var(--copper) 4%, transparent) 1px,
+        transparent 1px,
+        transparent 3px);
+    border: 1px solid color-mix(in oklab, var(--copper) 16%, transparent);
+  }
+  .card-mixer {
+    background:
+      linear-gradient(135deg,
+        color-mix(in oklab, var(--copper) 22%, var(--card)) 0%,
+        color-mix(in oklab, var(--teal) 18%, var(--aubergine)) 100%),
+      repeating-linear-gradient(120deg,
+        color-mix(in oklab, var(--copper-bright) 8%, transparent) 0px,
+        color-mix(in oklab, var(--copper-bright) 8%, transparent) 1px,
+        transparent 1px,
+        transparent 4px);
+    border: 1px solid color-mix(in oklab, var(--copper) 40%, transparent);
+  }
+  .glow-copper {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--copper) 50%, transparent),
+      0 10px 40px -8px color-mix(in oklab, var(--copper) 55%, transparent);
+  }
+  .glow-teal {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--teal) 45%, transparent),
+      0 10px 40px -8px color-mix(in oklab, var(--teal) 50%, transparent);
   }
   .text-gradient {
-    background: linear-gradient(135deg, oklch(0.97 0.02 270), color-mix(in oklab, var(--mint-glow) 80%, white));
+    background: linear-gradient(135deg,
+      oklch(0.97 0.012 80),
+      color-mix(in oklab, var(--copper) 80%, white));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .text-gradient-brand {
-    background: linear-gradient(120deg, var(--indigo-glow), var(--mint-glow));
+    background: linear-gradient(120deg, var(--copper), var(--teal));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
+  .text-copper { color: var(--copper); }
+  .text-teal { color: var(--teal); }
   .pulse-dot {
-    animation: pulseDot 2s ease-in-out infinite;
+    animation: pulseDot 2.2s ease-in-out infinite;
   }
   @keyframes pulseDot {
-    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--mint-glow) 60%, transparent); }
-    50% { box-shadow: 0 0 0 8px color-mix(in oklab, var(--mint-glow) 0%, transparent); }
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--copper) 60%, transparent); }
+    50% { box-shadow: 0 0 0 8px color-mix(in oklab, var(--copper) 0%, transparent); }
+  }
+  .shuffle-border {
+    position: relative;
+  }
+  .shuffle-border::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: linear-gradient(135deg, var(--copper), var(--teal), var(--copper));
+    background-size: 200% 200%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    animation: borderShimmer 4s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes borderShimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
   }
 }
