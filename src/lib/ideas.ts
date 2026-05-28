@@ -114,7 +114,7 @@ const mk = (
   });
 
 export const IDEAS: Record<NicheKey, Idea[]> = {
-  "tech-ai": mk("ta", [
+  "tech-ai": mk("ta", "tech-ai", [
     [98.2, "[Popular AI Tool] has a dangerous new feature (and nobody is talking about it)", "Buried three menus deep, this toggle quietly rewrites how your data leaves your machine. I only found it because a beta tester slipped.", "Pattern interrupt + tribal exclusivity. 'Dangerous' triggers loss-aversion; 'nobody is talking about it' positions the viewer as an insider before they even click.", true],
     [97.6, "I tried replacing my entire [Job Title] workflow with [New AI Agent] for 7 days", "Day 2 I almost quit. Day 4 it did something my human contractor never could. The result rewired how I'll hire forever.", "Temporal contract ('7 days') + identity stakes. Viewers stay to see if their own job is next, plus the day-by-day arc creates micro cliffhangers."],
     [96.9, "The [Number]-second prompt that just killed [Entire Software Category]", "I tested it against the $400/mo industry leader. The output wasn't just close — it was embarrassingly better.", "Specificity bias. A number in the title makes the claim feel measurable, while 'killed' frames the video as news, not opinion."],
@@ -147,7 +147,7 @@ export const IDEAS: Record<NicheKey, Idea[]> = {
     [85.0, "What [Senior Engineer] told me after watching me code with AI for 10 minutes", "Three words I haven't been able to stop thinking about. They reshaped how I structure every project now.", "Mentor moment. The 'three words' tease is impossible to scroll past."],
   ]),
 
-  gaming: mk("g", [
+  gaming: mk("g", "gaming", [
     [98.4, "I beat [Hardest Boss] using only [Worst Weapon] — and discovered something broken", "Everyone said impossible. Twelve hours in, I found a mechanic the devs definitely did not intend.", "Challenge run + glitch reveal. Two of YouTube gaming's most reliable formats stacked into one title.", true],
     [97.8, "[Pro Player] reacts to my [Rank] gameplay and tells me the brutal truth", "I thought I was decent. Three minutes in, they paused the clip and said the one sentence that fixed my aim forever.", "Authority verdict + transformation. Viewers self-insert as the student getting the secret coaching."],
     [97.2, "The [Game] setting 99% of players have wrong (and pros never talk about)", "I dug through 14 pro config files looking for the edge. They all had this one obscure value changed from default.", "Statistical exclusivity + tribal secret. 'Pros never talk about' implies you're breaking the omertà."],
@@ -180,7 +180,7 @@ export const IDEAS: Record<NicheKey, Idea[]> = {
     [85.5, "The [Number] [Game] tips I wish someone told me at hour 1", "Tip #2 alone saves 4 hours of grinding. Tip #7 would have stopped me from deleting my first save entirely.", "Practical service. List-based newbie videos are evergreen and constantly resurface in search."],
   ]),
 
-  solopreneur: mk("s", [
+  solopreneur: mk("s", "solopreneur", [
     [98.1, "I made $10,000 in [Number] hours with zero marketing budget (my step-by-step framework)", "No paid ads. No audience. Just 4 cold DMs, 1 landing page, and a single Notion doc that did the convincing.", "Dollar specificity + zero-cost promise. The contrast between 'big number' and 'no spend' is the most clickable solopreneur frame.", true],
     [97.5, "Why your [SaaS Idea] is destined to fail (and the [Number] niches printing money instead)", "I've reviewed 200+ indie launches this year. The pattern that separates the dead from the cashflowing is brutal — and obvious in hindsight.", "Tough-love authority. 'Destined to fail' triggers protective curiosity; the niches list delivers the redemption."],
     [97.0, "The exact email templates I used to land [Number] pre-sales for my [App Name]", "Copy them. Paste them. Send them. The third one feels almost too casual — that's why it converts at 41%.", "Receipts + permission. Templates with conversion stats remove the 'is this real?' friction.", true],
@@ -213,7 +213,7 @@ export const IDEAS: Record<NicheKey, Idea[]> = {
     [85.7, "The [Niche] business I'd build if I were starting over today", "Tiny market. Boring problem. Annoying customers — in the best way. Here's the exact business plan I'd execute on day one.", "Reset framing + giveaway. 'If I were starting over' is one of the most clicked indie hacker hooks of all time."],
   ]),
 
-  productivity: mk("p", [
+  productivity: mk("p", "productivity", [
     [98.0, "The [Time]-hour work week is a lie (this [Number]-minute system is actually effective)", "I've tested every productivity book on this shelf. None of them survived a real Tuesday. This one did.", "Sacred-cow takedown. Calling out a famous concept invites both fans and critics to click.", true],
     [97.4, "The [Number] micro-habits that will completely [Goal] your productivity", "Each one takes under 90 seconds. Stacked together, they replaced an $80/mo coaching subscription I no longer need.", "Low-effort + outsized claim. Micro-habit content has the highest save rate in the niche."],
     [96.9, "[Famous High Performer]'s time blocking method: how to get 2 days of work done in 1", "I tried it the first week and almost quit. The second week I scheduled fewer blocks. The output graph speaks for itself.", "Authority steal + visual proof. Borrowing a name accelerates trust by years."],
