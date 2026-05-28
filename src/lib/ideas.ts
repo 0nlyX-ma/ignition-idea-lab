@@ -1,3 +1,7 @@
+export type Platform = "youtube" | "tiktok" | "x" | "linkedin";
+
+export type NicheKey = "tech-ai" | "gaming" | "solopreneur" | "productivity";
+
 export type Idea = {
   id: string;
   score: number;
@@ -5,15 +9,60 @@ export type Idea = {
   hook: string;
   why: string;
   featured?: boolean;
+  niche: NicheKey | "mixer";
+  platforms: Platform[];
+  antiHook: string;
+  outline: [string, string, string];
+  psychology: string;
 };
-
-export type NicheKey = "tech-ai" | "gaming" | "solopreneur" | "productivity";
 
 export const NICHES: { key: NicheKey; label: string }[] = [
   { key: "tech-ai", label: "Tech & AI" },
   { key: "gaming", label: "Gaming" },
   { key: "solopreneur", label: "Solopreneur / Indie Hacking" },
   { key: "productivity", label: "Productivity" },
+];
+
+export const PLATFORMS: { key: Platform; label: string }[] = [
+  { key: "youtube", label: "YouTube" },
+  { key: "tiktok", label: "TikTok" },
+  { key: "x", label: "X" },
+  { key: "linkedin", label: "LinkedIn" },
+];
+
+const NICHE_PLATFORM_DEFAULTS: Record<NicheKey | "mixer", Platform[]> = {
+  "tech-ai": ["youtube", "x", "linkedin"],
+  gaming: ["youtube", "tiktok"],
+  solopreneur: ["x", "linkedin", "youtube"],
+  productivity: ["youtube", "x", "linkedin"],
+  mixer: ["youtube", "x", "tiktok", "linkedin"],
+};
+
+const ANTI_HOOKS = [
+  "Don't open with 'Hey guys' or 'Welcome back' — viewers bail in 0.8s.",
+  "Don't tease the payoff for 30 seconds — front-load the promise or lose 70% of retention.",
+  "Don't introduce yourself first — your face isn't the hook, the stakes are.",
+  "Don't read the title out loud — restate the tension in fresh words.",
+  "Don't hedge with 'kind of' or 'maybe' — confidence is the algorithm's tax.",
+  "Don't start on B-roll. Start on the line that makes them text a friend.",
+];
+
+const OUTLINES: Array<[string, string, string]> = [
+  [
+    "Open with the unexpected tension — name the enemy in one sentence.",
+    "Reveal the mechanism or unlikely fix nobody else is showing.",
+    "Land the concrete result + the smallest next step the viewer can copy today.",
+  ],
+  [
+    "State the painful, specific status quo (use a number or screenshot).",
+    "Introduce the weird middle move — the step everyone skips.",
+    "Show the after-photo, then drop the CTA + one strong opinion.",
+  ],
+  [
+    "Pattern-interrupt with one line that contradicts the default belief.",
+    "Walk through 2–3 steps that prove your contrarian take — keep cuts tight.",
+    "Recap the takeaway as a tweetable line, then point to the next video.",
+  ],
 ];
 
 const mk = (
