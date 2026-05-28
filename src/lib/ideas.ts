@@ -65,18 +65,53 @@ const OUTLINES: Array<[string, string, string]> = [
   ],
 ];
 
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function pickPlatforms(niche: NicheKey | "mixer", id: string): Platform[] {
+  const base = NICHE_PLATFORM_DEFAULTS[niche];
+  // Drop one ~30% of the time for variety, deterministic by id.
+  const h = hash(id);
+  if (base.length > 2 && h % 10 < 3) {
+    return base.filter((_, i) => i !== h % base.length);
+  }
+  return base;
+}
+
+function psychologyOf(why: string): string {
+  // First clause before "." or "—" or "+", trimmed.
+  const m = why.split(/[.—]/)[0]?.trim() ?? why;
+  return m.length > 70 ? m.slice(0, 67).trim() + "…" : m;
+}
+
 const mk = (
   prefix: string,
+  niche: NicheKey,
   arr: Array<[number, string, string, string, boolean?]>,
 ): Idea[] =>
-  arr.map(([score, formula, hook, why, featured], i) => ({
-    id: `${prefix}${i + 1}`,
-    score,
-    formula,
-    hook,
-    why,
-    featured,
-  }));
+  arr.map(([score, formula, hook, why, featured], i) => {
+    const id = `${prefix}${i + 1}`;
+    const h = hash(id);
+    return {
+      id,
+      score,
+      formula,
+      hook,
+      why,
+      featured,
+      niche,
+      platforms: pickPlatforms(niche, id),
+      antiHook: ANTI_HOOKS[h % ANTI_HOOKS.length],
+      outline: OUTLINES[h % OUTLINES.length],
+      psychology: psychologyOf(why),
+    };
+  });
 
 export const IDEAS: Record<NicheKey, Idea[]> = {
   "tech-ai": mk("ta", [
