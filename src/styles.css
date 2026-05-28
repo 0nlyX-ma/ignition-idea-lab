@@ -194,4 +194,27 @@
     0% { background-position: 0% 50%; }
     100% { background-position: 200% 50%; }
   }
+  .modal-input {
+    width: 100%;
+    background: color-mix(in oklab, var(--background) 55%, transparent);
+    border: 1px solid color-mix(in oklab, var(--copper) 20%, transparent);
+    border-radius: 0.6rem;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.875rem;
+    color: var(--foreground);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .modal-input:focus {
+    outline: none;
+    border-color: color-mix(in oklab, var(--copper) 60%, transparent);
+    background: color-mix(in oklab, var(--background) 70%, transparent);
+  }
+  .modal-input::placeholder { color: var(--muted-foreground); }
+  .score-glow {
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
+  .score-glow:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 22px -2px color-mix(in oklab, var(--copper) 55%, transparent);
+  }
 }
