@@ -248,7 +248,7 @@ export const IDEAS: Record<NicheKey, Idea[]> = {
 };
 
 // "Mixer Pick" cross-niche patterns — one is injected into every shuffle.
-export const MIXER_PICKS: Idea[] = [
+const RAW_MIXER: Array<Omit<Idea, "niche" | "platforms" | "antiHook" | "outline" | "psychology">> = [
   {
     id: "mx1",
     score: 98.6,
@@ -298,3 +298,25 @@ export const MIXER_PICKS: Idea[] = [
     featured: true,
   },
 ];
+
+export const MIXER_PICKS: Idea[] = RAW_MIXER.map((m) => {
+  const h = hash(m.id);
+  return {
+    ...m,
+    niche: "mixer" as const,
+    platforms: pickPlatforms("mixer", m.id),
+    antiHook: ANTI_HOOKS[h % ANTI_HOOKS.length],
+    outline: OUTLINES[h % OUTLINES.length],
+    psychology: psychologyOf(m.why),
+  };
+});
+
+/** All ideas (niche + mixer) for global search / leaderboard. */
+export const ALL_IDEAS: Idea[] = [
+  ...(Object.values(IDEAS).flat() as Idea[]),
+  ...MIXER_PICKS,
+];
+
+export const IDEAS_BY_ID: Record<string, Idea> = Object.fromEntries(
+  ALL_IDEAS.map((i) => [i.id, i]),
+);
