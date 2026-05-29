@@ -29,7 +29,7 @@ import {
   type NicheKey,
   type Platform,
 } from "@/lib/ideas";
-import { IdeaCard, parseSlots, buildFilled, ATTRIBUTION } from "@/components/IdeaCard";
+import { IdeaCard, parseSlots, ATTRIBUTION } from "@/components/IdeaCard";
 import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
 
 export const Route = createFileRoute("/")({
