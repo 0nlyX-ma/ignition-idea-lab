@@ -266,7 +266,7 @@ export const IDEAS: Record<NicheKey, Idea[]> = {
 };
 
 // "Mixer Pick" cross-niche patterns — one is injected into every shuffle.
-const RAW_MIXER: Array<Omit<Idea, "niche" | "platforms" | "antiHook" | "outline" | "psychology">> = [
+const RAW_MIXER: Array<Omit<Idea, "niche" | "platforms" | "antiHook" | "outline" | "psychology" | "psyScores">> = [
   {
     id: "mx1",
     score: 98.6,
@@ -326,6 +326,7 @@ export const MIXER_PICKS: Idea[] = RAW_MIXER.map((m) => {
     antiHook: ANTI_HOOKS[h % ANTI_HOOKS.length],
     outline: OUTLINES[h % OUTLINES.length],
     psychology: psychologyOf(m.why),
+    psyScores: psyScoresFrom(m.score, h),
   };
 });
 
