@@ -93,6 +93,20 @@ function psychologyOf(why: string): string {
   return m.length > 70 ? m.slice(0, 67).trim() + "…" : m;
 }
 
+function psyScoresFrom(score: number, h: number): PsyScores {
+  // Anchor around the overall score, then deterministically perturb each axis.
+  const base = Math.min(99, Math.max(60, Math.round(score)));
+  const a = ((h >>> 3) % 18) - 9;          // -9..+8
+  const b = ((h >>> 11) % 22) - 11;        // -11..+10
+  const c = ((h >>> 19) % 26) - 13;        // -13..+12
+  const clamp = (x: number) => Math.max(58, Math.min(99, x));
+  return {
+    curiosity: clamp(base + a + 2),
+    novelty: clamp(base + b - 3),
+    authority: clamp(base + c),
+  };
+}
+
 const mk = (
   prefix: string,
   niche: NicheKey,
@@ -113,6 +127,7 @@ const mk = (
       antiHook: ANTI_HOOKS[h % ANTI_HOOKS.length],
       outline: OUTLINES[h % OUTLINES.length],
       psychology: psychologyOf(why),
+      psyScores: psyScoresFrom(score, h),
     };
   });
 
