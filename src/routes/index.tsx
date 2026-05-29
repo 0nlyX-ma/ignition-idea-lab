@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap,
@@ -14,6 +14,8 @@ import {
   Linkedin,
   Send,
   Sparkles,
+  Dices,
+  Combine,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -27,7 +29,7 @@ import {
   type NicheKey,
   type Platform,
 } from "@/lib/ideas";
-import { IdeaCard } from "@/components/IdeaCard";
+import { IdeaCard, parseSlots, buildFilled, ATTRIBUTION } from "@/components/IdeaCard";
 import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
 
 export const Route = createFileRoute("/")({
@@ -38,13 +40,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Battle-tested title formulas, hooks, anti-hooks and pacing outlines for creators. Edit, save, and remix 120+ patterns. 100% free.",
+          "Editable viral title formulas, anti-hooks, pacing outlines and a Pattern DNA visualizer. Slot Machine, Remix Lab, and shareable filled hooks. 100% free.",
       },
       { property: "og:title", content: "Creator Engine — Stop guessing what goes viral" },
       {
         property: "og:description",
         content:
-          "120+ editable title patterns, anti-hook warnings, and 3-bullet outlines — curated from Base 5's top wins. Free.",
+          "Edit the brackets, remix two formulas into a hybrid, or spin the Slot Machine. Built for creators who ship.",
       },
     ],
     links: [
@@ -52,7 +54,7 @@ export const Route = createFileRoute("/")({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@0,500;1,500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@0,500;1,500&family=JetBrains+Mono:wght@500;700&display=swap",
       },
     ],
   }),
@@ -104,6 +106,14 @@ function KofiButton({ size = "md", label = "Buy me an Espresso" }: { size?: "sm"
 
 type TabKey = NicheKey | "collection";
 
+// Curated wordbank for the Slot Machine variable reel
+const VAR_BANK = [
+  "Notion", "ChatGPT", "Cursor", "Figma", "Linear", "Stripe", "Raycast", "Obsidian",
+  "Claude", "Vercel", "Substack", "Loom", "Beehiiv", "Webflow", "Framer", "Bolt",
+  "5-minute", "90-day", "Sunday-night", "12-hour", "30-day", "$100/mo", "$10k MRR",
+  "freelance", "agency", "indie hacker", "morning", "deep-work", "Pomodoro",
+];
+
 function Index() {
   const [tab, setTab] = useState<TabKey>("tech-ai");
   const [query, setQuery] = useState("");
@@ -112,12 +122,42 @@ function Index() {
   const [shared, setShared] = useState(false);
   const [shuffling, setShuffling] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [slotOpen, setSlotOpen] = useState(false);
+  const [remixMode, setRemixMode] = useState(false);
+  const [remixPicks, setRemixPicks] = useState<string[]>([]);
+  const [remixResult, setRemixResult] = useState<Idea | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [prefill, setPrefill] = useState<{ id: string; values: Record<number, string> } | null>(null);
 
   const { ids: bookmarkIds, toggle: toggleBookmark, has: isBookmarked } = useBookmarks();
   const { counts, bump } = useCopyCounts();
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     setNewIds(getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
+  }, []);
+
+  // URL hash prefill: #id=X&v0=A&v1=B...
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const apply = () => {
+      const h = window.location.hash.replace(/^#/, "");
+      if (!h) return;
+      const params = new URLSearchParams(h);
+      const id = params.get("id");
+      if (!id || !IDEAS_BY_ID[id]) return;
+      const values: Record<number, string> = {};
+      for (const [k, v] of params.entries()) {
+        if (k.startsWith("v")) {
+          const idx = Number(k.slice(1));
+          if (!Number.isNaN(idx)) values[idx] = v;
+        }
+      }
+      setPrefill({ id, values });
+      setFocusedId(id);
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
   }, []);
 
   // Reseed when tab changes
@@ -134,12 +174,11 @@ function Index() {
   };
 
   const trending = useMemo(() => {
-    const ranked = Object.entries(counts)
+    return Object.entries(counts)
       .map(([id, c]) => ({ idea: IDEAS_BY_ID[id], count: c }))
       .filter((x) => x.idea)
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
-    return ranked;
   }, [counts]);
 
   const filtered = useMemo(() => {
@@ -161,7 +200,6 @@ function Index() {
     if (activePlatforms.size) {
       pool = pool.filter((i) => i.platforms.some((p) => activePlatforms.has(p)));
     }
-    // Deterministic shuffle by seed
     const rng = mulberry32(seed);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
@@ -176,6 +214,13 @@ function Index() {
     return MIXER_PICKS[Math.floor(rng() * MIXER_PICKS.length)];
   }, [tab, query, seed]);
 
+  // Living hero: rotates daily, biased to featured
+  const heroIdea = useMemo<Idea>(() => {
+    const today = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    const featured = ALL_IDEAS.filter((i) => i.featured);
+    return featured[today % featured.length] ?? ALL_IDEAS[0];
+  }, []);
+
   const shuffle = () => {
     setShuffling(true);
     setSeed(Math.floor(Math.random() * 1e9));
@@ -188,6 +233,41 @@ function Index() {
       setShared(true);
       setTimeout(() => setShared(false), 1600);
     } catch {}
+  };
+
+  const handleShareFormula = useCallback(async (id: string, values: Record<number, string>) => {
+    const params = new URLSearchParams();
+    params.set("id", id);
+    Object.entries(values).forEach(([k, v]) => {
+      if (v && v.trim()) params.set(`v${k}`, v.trim());
+    });
+    const url = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {}
+    if (window.history.replaceState) {
+      window.history.replaceState(null, "", `#${params.toString()}`);
+    }
+  }, []);
+
+  const handleRemixSelect = useCallback((id: string) => {
+    setRemixPicks((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      const next = [...prev, id].slice(-2);
+      if (next.length === 2) {
+        const a = IDEAS_BY_ID[next[0]];
+        const b = IDEAS_BY_ID[next[1]];
+        if (a && b) {
+          setTimeout(() => setRemixResult(buildRemix(a, b)), 350);
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const closeRemix = () => {
+    setRemixResult(null);
+    setRemixPicks([]);
   };
 
   return (
@@ -215,116 +295,23 @@ function Index() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="pt-32 sm:pt-40 pb-6 px-4 sm:px-6">
-        <div className="mx-auto max-w-4xl text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-xs text-muted-foreground mb-6"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--copper)] pulse-dot" />
-            120+ formulas · Editable · No signup · Saved locally
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.05 }}
-            className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-gradient leading-[1.04] font-display"
-          >
-            Stop guessing<br />what goes viral.
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-            className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-          >
-            Edit the brackets. Steal the hooks. Skip the anti-hooks.{" "}
-            <span className="text-foreground font-medium">100% free</span>{" "}
-            <span className="text-[color:var(--copper)]">(curated from Base 5's top wins).</span>
-          </motion.p>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="px-4 sm:px-6 pb-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {[
-              { n: "01", t: "Pick a framework", d: "Browse 120+ patterns across 4 niches." },
-              { n: "02", t: "Swap the variables", d: "Edit the [brackets] directly on the card." },
-              { n: "03", t: "Record & post", d: "Copy your version. Ship it before lunch." },
-            ].map((s, i) => (
-              <motion.div
-                key={s.n}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 + i * 0.08 }}
-                className="glass-subtle rounded-xl px-4 py-3.5 flex items-center gap-3"
-              >
-                <span className="text-2xl font-bold tracking-tight text-gradient-brand font-display">{s.n}</span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground/95">{s.t}</p>
-                  <p className="text-xs text-muted-foreground">{s.d}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TRENDING */}
-      {trending.length > 0 && (
-        <section className="px-4 sm:px-6 pb-8">
-          <div className="mx-auto max-w-5xl">
-            <div className="card-brushed rounded-2xl p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-[color:var(--copper)]" />
-                <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-[color:var(--copper)]">
-                  Trending — most copied by you
-                </h2>
-              </div>
-              <ol className="space-y-2.5">
-                {trending.map((t, i) => (
-                  <li key={t.idea.id} className="flex items-start gap-3 text-sm">
-                    <span className="font-bold text-[color:var(--teal)] w-6 shrink-0 font-display text-base">
-                      #{i + 1}
-                    </span>
-                    <span className="text-foreground/90 flex-1">{t.idea.formula}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">{t.count}×</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* SEARCH */}
-      <section className="px-4 sm:px-6 pb-5">
-        <div className="mx-auto max-w-2xl relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search formulas — try 'AI', 'money', 'morning'…"
-            className="w-full glass rounded-full pl-11 pr-11 py-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[color:var(--copper)]/60 transition-colors"
+      {/* LIVING HERO CARD */}
+      <section className="pt-28 sm:pt-32 pb-8 px-4 sm:px-6">
+        <div className="mx-auto max-w-4xl">
+          <IdeaCard
+            idea={heroIdea}
+            hero
+            onCopy={bump}
+            onShare={handleShareFormula}
           />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[color:var(--secondary)]/60"
-            >
-              <XClose className="w-4 h-4" />
-            </button>
-          )}
+          <p className="mt-5 text-center text-sm text-muted-foreground max-w-2xl mx-auto">
+            Click any <span className="text-[color:var(--copper)] font-semibold">[bracket]</span> and start typing — the formula rebalances itself live. Hit{" "}
+            <span className="font-mono text-[color:var(--copper)]">Share</span> to copy a link with your variables baked in.
+          </p>
         </div>
       </section>
 
-      {/* TABS + PLATFORM FILTER */}
+      {/* CONTROL BAR: Niches + Stuck + Remix */}
       <section className="px-4 sm:px-6 pb-6">
         <div className="mx-auto max-w-5xl flex flex-col items-center gap-4">
           <motion.div
@@ -354,59 +341,121 @@ function Index() {
             />
           </motion.div>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="hidden sm:inline">Filter:</span>
-            {PLATFORMS.map((p) => {
-              const Ico = PLATFORM_ICONS[p.key];
-              const active = activePlatforms.has(p.key);
-              return (
-                <button
-                  key={p.key}
-                  onClick={() => togglePlatform(p.key)}
-                  aria-pressed={active}
-                  title={p.label}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-full border transition-all ${
-                    active
-                      ? "bg-[color:var(--copper)] text-[color:var(--background)] border-[color:var(--copper)] shadow-[0_0_18px_-4px_color-mix(in_oklab,var(--copper)_70%,transparent)]"
-                      : "border-[color:var(--copper)]/20 text-foreground/70 hover:text-foreground hover:border-[color:var(--copper)]/50"
-                  }`}
-                >
-                  <Ico className="w-4 h-4" />
-                </button>
-              );
-            })}
-            {activePlatforms.size > 0 && (
-              <button
-                onClick={() => setActivePlatforms(new Set())}
-                className="ml-1 text-xs text-muted-foreground hover:text-foreground"
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <motion.button
+              onClick={() => setSlotOpen(true)}
+              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.03 }}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm tracking-tight text-[color:var(--background)] relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, var(--copper), var(--copper-bright))",
+                boxShadow:
+                  "0 0 0 1px color-mix(in oklab, var(--copper) 60%, transparent), 0 14px 38px -12px color-mix(in oklab, var(--copper) 70%, transparent)",
+              }}
+            >
+              <Dices className="w-4 h-4" />
+              I'm Stuck — Spin
+            </motion.button>
+
+            <motion.button
+              onClick={shuffle}
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.02 }}
+              className="hidden sm:inline-flex shuffle-border relative items-center gap-2.5 px-5 py-3 rounded-full font-bold text-sm tracking-tight overflow-hidden card-brushed"
+            >
+              <motion.span
+                aria-hidden
+                animate={{ rotate: shuffling ? 360 : 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               >
-                clear
-              </button>
-            )}
+                <Shuffle className="w-4 h-4 text-[color:var(--copper)]" />
+              </motion.span>
+              <span className="text-gradient-brand">Shuffle Grid</span>
+            </motion.button>
+
+            <button
+              onClick={() => { setRemixMode((v) => !v); setRemixPicks([]); }}
+              aria-pressed={remixMode}
+              className={`inline-flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm tracking-tight transition-all border ${
+                remixMode
+                  ? "bg-[color:var(--copper)]/20 border-[color:var(--copper)]/60 text-[color:var(--copper)] shadow-[0_0_22px_-4px_color-mix(in_oklab,var(--copper)_70%,transparent)]"
+                  : "glass-subtle border-transparent text-foreground/80 hover:text-foreground"
+              }`}
+            >
+              <Combine className="w-4 h-4" />
+              Remix Lab {remixMode && `· pick ${2 - remixPicks.length}`}
+            </button>
           </div>
 
-          {/* Desktop shuffle */}
-          <motion.button
-            onClick={shuffle}
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ scale: 1.02 }}
-            className="hidden sm:inline-flex shuffle-border relative items-center gap-3 px-7 py-3.5 rounded-2xl font-bold text-base tracking-tight overflow-hidden card-brushed"
-            style={{
-              boxShadow:
-                "0 18px 60px -16px color-mix(in oklab, var(--copper) 60%, transparent), 0 0 0 1px color-mix(in oklab, var(--copper) 30%, transparent)",
-            }}
-          >
-            <motion.span
-              aria-hidden
-              animate={{ rotate: shuffling ? 360 : 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <Shuffle className="w-5 h-5 text-[color:var(--copper)]" />
-            </motion.span>
-            <span className="relative text-gradient-brand">Shuffle Creator Patterns</span>
-          </motion.button>
+          {/* Platform filters + search */}
+          <div className="w-full max-w-2xl flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search — 'AI', 'money', 'morning'…"
+                className="w-full glass rounded-full pl-11 pr-11 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[color:var(--copper)]/60 transition-colors"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[color:var(--secondary)]/60"
+                >
+                  <XClose className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              {PLATFORMS.map((p) => {
+                const Ico = PLATFORM_ICONS[p.key];
+                const active = activePlatforms.has(p.key);
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => togglePlatform(p.key)}
+                    aria-pressed={active}
+                    title={p.label}
+                    className={`inline-flex items-center justify-center w-9 h-9 rounded-full border transition-all ${
+                      active
+                        ? "bg-[color:var(--copper)] text-[color:var(--background)] border-[color:var(--copper)]"
+                        : "border-[color:var(--copper)]/20 text-foreground/70 hover:text-foreground hover:border-[color:var(--copper)]/50"
+                    }`}
+                  >
+                    <Ico className="w-4 h-4" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* TRENDING */}
+      {trending.length > 0 && (
+        <section className="px-4 sm:px-6 pb-6">
+          <div className="mx-auto max-w-5xl">
+            <div className="card-brushed rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="w-4 h-4 text-[color:var(--copper)]" />
+                <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-[color:var(--copper)]">
+                  Trending — most copied by you
+                </h2>
+              </div>
+              <ol className="space-y-2.5">
+                {trending.map((t, i) => (
+                  <li key={t.idea.id} className="flex items-start gap-3 text-sm">
+                    <span className="font-bold text-[color:var(--teal)] w-6 shrink-0 font-display text-base">#{i + 1}</span>
+                    <span className="text-foreground/90 flex-1">{t.idea.formula}</span>
+                    <span className="text-xs text-muted-foreground shrink-0 font-mono" style={{ fontFamily: "var(--font-mono)" }}>{t.count}×</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* GRID */}
       <main className="px-4 sm:px-6 pb-32 sm:pb-24">
@@ -425,32 +474,52 @@ function Index() {
               ) : (
                 <>
                   {filtered.map((idea, i) => (
-                    <IdeaCard
-                      key={`${idea.id}-${seed}`}
-                      idea={idea}
-                      index={i}
-                      isNew={newIds.has(idea.id)}
-                      bookmarked={isBookmarked(idea.id)}
-                      onToggleBookmark={toggleBookmark}
-                      onCopy={bump}
-                    />
+                    focusedId === idea.id ? (
+                      <div key={`${idea.id}-${seed}-ghost`} className="opacity-0 pointer-events-none" aria-hidden />
+                    ) : (
+                      <IdeaCard
+                        key={`${idea.id}-${seed}`}
+                        idea={idea}
+                        index={i}
+                        layoutId={`card-${idea.id}`}
+                        isNew={newIds.has(idea.id)}
+                        bookmarked={isBookmarked(idea.id)}
+                        onToggleBookmark={toggleBookmark}
+                        onCopy={bump}
+                        onShare={handleShareFormula}
+                        remixActive={remixMode}
+                        remixSelected={remixPicks.includes(idea.id)}
+                        onRemixSelect={handleRemixSelect}
+                        onExpand={(id) => !remixMode && setFocusedId(id)}
+                        initialValues={prefill?.id === idea.id ? prefill.values : undefined}
+                      />
+                    )
                   ))}
-                  {mixer && (
+                  {mixer && focusedId !== mixer.id && (
                     <IdeaCard
                       key={`${mixer.id}-${seed}-mx`}
                       idea={mixer}
                       index={filtered.length}
                       variant="mixer"
+                      layoutId={`card-${mixer.id}`}
                       isNew={newIds.has(mixer.id)}
                       bookmarked={isBookmarked(mixer.id)}
                       onToggleBookmark={toggleBookmark}
                       onCopy={bump}
+                      onShare={handleShareFormula}
+                      remixActive={remixMode}
+                      remixSelected={remixPicks.includes(mixer.id)}
+                      onRemixSelect={handleRemixSelect}
+                      onExpand={(id) => !remixMode && setFocusedId(id)}
                     />
                   )}
                 </>
               )}
             </motion.div>
           </AnimatePresence>
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Double-click any formula title to enter <span className="text-[color:var(--copper)] font-semibold">Focus Mode</span>.
+          </p>
         </div>
       </main>
 
@@ -460,15 +529,11 @@ function Index() {
           onClick={shuffle}
           whileTap={{ scale: 0.96 }}
           className="pointer-events-auto w-full shuffle-border relative inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-2xl font-bold text-sm tracking-tight overflow-hidden card-brushed"
-          style={{
-            boxShadow:
-              "0 22px 60px -18px color-mix(in oklab, var(--copper) 70%, transparent), 0 0 0 1px color-mix(in oklab, var(--copper) 35%, transparent)",
-          }}
         >
           <motion.span aria-hidden animate={{ rotate: shuffling ? 360 : 0 }} transition={{ duration: 0.5 }}>
             <Shuffle className="w-4 h-4 text-[color:var(--copper)]" />
           </motion.span>
-          <span className="text-gradient-brand">Shuffle Patterns</span>
+          <span className="text-gradient-brand">Shuffle Grid</span>
         </motion.button>
       </div>
 
@@ -494,24 +559,12 @@ function Index() {
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {shared ? (
-                    <motion.span
-                      key="ok"
-                      initial={{ opacity: 0, scale: 0.7 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.7 }}
-                      className="inline-flex items-center gap-2"
-                    >
+                    <motion.span key="ok" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }} className="inline-flex items-center gap-2">
                       <Check className="w-4 h-4 text-[color:var(--success)]" />
                       Link copied!
                     </motion.span>
                   ) : (
-                    <motion.span
-                      key="idle"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="inline-flex items-center gap-2"
-                    >
+                    <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="inline-flex items-center gap-2">
                       <Share2 className="w-4 h-4" />
                       Share Tool
                     </motion.span>
@@ -526,6 +579,12 @@ function Index() {
                 Submit a Formula
               </button>
             </div>
+            <p className="mt-6 text-[11px] text-muted-foreground/80">
+              Every copy includes:{" "}
+              <span className="font-mono text-[color:var(--copper)]/80" style={{ fontFamily: "var(--font-mono)" }}>
+                ⚡ Generated with Creator Engine | creator-engine.app
+              </span>
+            </p>
           </div>
 
           <p className="mt-10 text-center text-xs text-muted-foreground">
@@ -535,19 +594,132 @@ function Index() {
       </footer>
 
       <SubmitModal open={submitOpen} onClose={() => setSubmitOpen(false)} />
+      <SlotMachineModal open={slotOpen} onClose={() => setSlotOpen(false)} onCopy={bump} onShare={handleShareFormula} />
+
+      {/* FOCUS MODE OVERLAY */}
+      <AnimatePresence>
+        {focusedId && IDEAS_BY_ID[focusedId] && (
+          <motion.div
+            key="focus"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-8"
+            style={{
+              background: "color-mix(in oklab, black 65%, transparent)",
+              backdropFilter: "blur(14px) saturate(120%)",
+              WebkitBackdropFilter: "blur(14px) saturate(120%)",
+            }}
+            onClick={() => setFocusedId(null)}
+          >
+            <button
+              onClick={() => setFocusedId(null)}
+              aria-label="Exit focus mode"
+              className="absolute top-5 right-5 w-10 h-10 inline-flex items-center justify-center rounded-full glass hover:bg-[color:var(--secondary)] transition-colors z-10"
+            >
+              <XClose className="w-5 h-5" />
+            </button>
+            <div className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+              <IdeaCard
+                idea={IDEAS_BY_ID[focusedId]}
+                layoutId={`card-${focusedId}`}
+                forceOpen
+                onCopy={bump}
+                onShare={handleShareFormula}
+                bookmarked={isBookmarked(focusedId)}
+                onToggleBookmark={toggleBookmark}
+                initialValues={prefill?.id === focusedId ? prefill.values : undefined}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* REMIX RESULT */}
+      <AnimatePresence>
+        {remixResult && (
+          <motion.div
+            key="remix"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-8"
+            style={{
+              background: "color-mix(in oklab, black 70%, transparent)",
+              backdropFilter: "blur(14px)",
+            }}
+            onClick={closeRemix}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-3xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-4">
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.18em] bg-[color:var(--copper)]/15 text-[color:var(--copper)] border border-[color:var(--copper)]/40">
+                  <Combine className="w-3.5 h-3.5" /> Remix Result
+                </span>
+              </div>
+              <IdeaCard
+                idea={remixResult}
+                variant="remix"
+                forceOpen
+                onCopy={bump}
+                onShare={handleShareFormula}
+              />
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={closeRemix}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold glass hover:bg-[color:var(--secondary)]"
+                >
+                  <XClose className="w-4 h-4" /> Close Remix
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function TabPill({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: React.ReactNode;
-}) {
+/* =========================================================
+ * Helpers
+ * ========================================================= */
+
+function buildRemix(a: Idea, b: Idea): Idea {
+  // Hybrid formula: take first half of A's slots/text + second half of B's
+  const aParts = parseSlots(a.formula);
+  const bParts = parseSlots(b.formula);
+  const aHalf = aParts.slice(0, Math.ceil(aParts.length / 2)).map((p) => (p.kind === "text" ? p.value : `[${p.placeholder}]`)).join("");
+  const bHalf = bParts.slice(Math.floor(bParts.length / 2)).map((p) => (p.kind === "text" ? p.value : `[${p.placeholder}]`)).join("");
+  const conj = " × ";
+  const formula = `${aHalf.trim().replace(/[.,;:]\s*$/, "")}${conj}${bHalf.trim()}`;
+  const hook = `${a.hook.split(/(?<=\.)\s/)[0]} ${b.hook.split(/(?<=\.)\s/).slice(-1)[0]}`;
+  const score = Number(((a.score + b.score) / 2 + 1).toFixed(1));
+  const avg = (k: keyof Idea["psyScores"]) =>
+    Math.min(99, Math.round((a.psyScores[k] + b.psyScores[k]) / 2) + 2);
+  return {
+    id: `remix-${a.id}-${b.id}`,
+    score,
+    formula,
+    hook,
+    why: `Cross-pattern fusion: ${a.psychology} + ${b.psychology}. Hybrid formulas land because they import surprise from one niche into another.`,
+    niche: "mixer",
+    platforms: Array.from(new Set([...a.platforms, ...b.platforms])).slice(0, 4) as Platform[],
+    antiHook: a.antiHook,
+    outline: a.outline,
+    psychology: "Hybrid fusion — two proven patterns layered.",
+    psyScores: { curiosity: avg("curiosity"), novelty: avg("novelty"), authority: avg("authority") },
+    featured: true,
+  };
+}
+
+function TabPill({ active, onClick, label }: { active: boolean; onClick: () => void; label: React.ReactNode }) {
   return (
     <button
       role="tab"
@@ -576,31 +748,18 @@ function TabPill({
 function EmptyState({ tab, clear }: { tab: TabKey; clear: () => void }) {
   const isCollection = tab === "collection";
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="col-span-full text-center py-20 px-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="col-span-full text-center py-20 px-6">
       <div className="mx-auto w-16 h-16 rounded-2xl glass-subtle flex items-center justify-center mb-5">
-        {isCollection ? (
-          <Bookmark className="w-7 h-7 text-[color:var(--copper)]" />
-        ) : (
-          <Search className="w-7 h-7 text-[color:var(--copper)]" />
-        )}
+        {isCollection ? <Bookmark className="w-7 h-7 text-[color:var(--copper)]" /> : <Search className="w-7 h-7 text-[color:var(--copper)]" />}
       </div>
       <h3 className="text-xl sm:text-2xl font-bold font-display text-gradient mb-2">
         {isCollection ? "Your collection is empty." : "Even the algorithm couldn't find that."}
       </h3>
       <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
-        {isCollection
-          ? "Hit the bookmark on any formula and it'll wait for you here."
-          : "Try a different keyword, or clear the platform filters."}
+        {isCollection ? "Hit the bookmark on any formula and it'll wait for you here." : "Try a different keyword, or clear the platform filters."}
       </p>
       {!isCollection && (
-        <button
-          onClick={clear}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold glass hover:bg-[color:var(--secondary)] transition-colors"
-        >
+        <button onClick={clear} className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold glass hover:bg-[color:var(--secondary)] transition-colors">
           Clear filters
         </button>
       )}
@@ -608,6 +767,193 @@ function EmptyState({ tab, clear }: { tab: TabKey; clear: () => void }) {
   );
 }
 
+/* =========================================================
+ * Slot Machine
+ * ========================================================= */
+function SlotMachineModal({
+  open,
+  onClose,
+  onCopy,
+  onShare,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCopy: (id: string) => void;
+  onShare: (id: string, values: Record<number, string>) => void;
+}) {
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState<{ idea: Idea; values: Record<number, string> } | null>(null);
+  const [reels, setReels] = useState<{ niche: string[]; formula: string[]; variable: string[] }>(() => buildReels());
+
+  useEffect(() => {
+    if (open) {
+      setResult(null);
+    }
+  }, [open]);
+
+  const spin = () => {
+    setSpinning(true);
+    setResult(null);
+    const fresh = buildReels();
+    setReels(fresh);
+    setTimeout(() => {
+      // Pick a random idea, then pre-fill its first slot with a random var.
+      const idea = ALL_IDEAS[Math.floor(Math.random() * ALL_IDEAS.length)];
+      const slots = parseSlots(idea.formula);
+      const values: Record<number, string> = {};
+      const firstSlot = slots.find((s) => s.kind === "slot");
+      if (firstSlot) values[firstSlot.key] = VAR_BANK[Math.floor(Math.random() * VAR_BANK.length)];
+      setResult({ idea, values });
+      setSpinning(false);
+    }, 2400);
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.96 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            onClick={(e) => e.stopPropagation()}
+            className="card-brushed rounded-3xl w-full max-w-2xl p-6 sm:p-8 relative"
+          >
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute right-4 top-4 w-9 h-9 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[color:var(--secondary)]/70"
+            >
+              <XClose className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-1">
+              <Dices className="w-5 h-5 text-[color:var(--copper)]" />
+              <h3 className="text-2xl font-bold font-display text-gradient">Idea Roulette</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-5">Three reels. One guaranteed idea. Spin until something clicks.</p>
+
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <Reel items={reels.niche} spinning={spinning} delay={0} label="Niche" />
+              <Reel items={reels.formula} spinning={spinning} delay={300} label="Pattern" />
+              <Reel items={reels.variable} spinning={spinning} delay={600} label="Variable" />
+            </div>
+
+            <div className="flex justify-center mb-5">
+              <motion.button
+                onClick={spin}
+                disabled={spinning}
+                whileTap={{ scale: 0.96 }}
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-full font-bold text-sm tracking-tight text-[color:var(--background)] disabled:opacity-70"
+                style={{
+                  background: "linear-gradient(135deg, var(--copper), var(--copper-bright))",
+                  boxShadow: "0 14px 38px -12px color-mix(in oklab, var(--copper) 70%, transparent)",
+                }}
+              >
+                <Dices className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
+                {spinning ? "Spinning…" : result ? "Spin Again" : "Spin Reels"}
+              </motion.button>
+            </div>
+
+            <AnimatePresence>
+              {result && (
+                <motion.div
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <IdeaCard
+                    idea={result.idea}
+                    forceOpen
+                    initialValues={result.values}
+                    onCopy={onCopy}
+                    onShare={onShare}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function buildReels() {
+  const formulas = ALL_IDEAS.map((i) => i.formula.replace(/\[[^\]]+\]/g, "___").slice(0, 36));
+  return {
+    niche: shuffleArr(NICHES.map((n) => n.label).concat(["Mixer"])).slice(0, 20),
+    formula: shuffleArr(formulas).slice(0, 20),
+    variable: shuffleArr(VAR_BANK).slice(0, 20),
+  };
+}
+function shuffleArr<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function Reel({ items, spinning, delay, label }: { items: string[]; spinning: boolean; delay: number; label: string }) {
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [y, setY] = useState(0);
+  const itemH = 72; // matches CSS
+  const looped = useMemo(() => [...items, ...items, ...items], [items]);
+
+  useEffect(() => {
+    if (spinning) {
+      // Spin: animate to a tall offset, then settle to a random index after delay
+      const total = items.length;
+      const target = Math.floor(Math.random() * total);
+      setY(0);
+      const start = setTimeout(() => {
+        setY(-(total * 4 + target) * itemH);
+      }, 30);
+      const settle = setTimeout(() => {
+        setY(-(total * 2 + target) * itemH);
+      }, 1900 + delay);
+      return () => { clearTimeout(start); clearTimeout(settle); };
+    }
+  }, [spinning, items, delay]);
+
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--copper)]/80 font-bold text-center mb-1.5">{label}</p>
+      <div className="reel">
+        <motion.div
+          ref={trackRef}
+          className="reel-track"
+          animate={{ y }}
+          transition={
+            spinning
+              ? { duration: 1.9 + delay / 1000, ease: [0.22, 0.8, 0.2, 1] }
+              : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+          }
+        >
+          {looped.map((s, i) => (
+            <div key={i} className="reel-item truncate" title={s}>
+              {s}
+            </div>
+          ))}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+ * Submit Modal
+ * ========================================================= */
 function SubmitModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [form, setForm] = useState({ title: "", hook: "", platform: "youtube" });
   const [sent, setSent] = useState(false);
@@ -623,13 +969,8 @@ function SubmitModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock submission: open mailto with prefilled body
-    const body = encodeURIComponent(
-      `Title: ${form.title}\nHook: ${form.hook}\nPlatform: ${form.platform}`,
-    );
-    window.location.href = `mailto:hello@creatorengine.app?subject=${encodeURIComponent(
-      "New Formula Submission",
-    )}&body=${body}`;
+    const body = encodeURIComponent(`Title: ${form.title}\nHook: ${form.hook}\nPlatform: ${form.platform}${ATTRIBUTION}`);
+    window.location.href = `mailto:hello@creator-engine.app?subject=${encodeURIComponent("New Formula Submission")}&body=${body}`;
     setSent(true);
   };
 
@@ -696,9 +1037,7 @@ function SubmitModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                     className="modal-input"
                   >
                     {PLATFORMS.map((p) => (
-                      <option key={p.key} value={p.key}>
-                        {p.label}
-                      </option>
+                      <option key={p.key} value={p.key}>{p.label}</option>
                     ))}
                   </select>
                 </Field>
@@ -721,9 +1060,7 @@ function SubmitModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground mb-1.5 block">
-        {label}
-      </span>
+      <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-muted-foreground mb-1.5 block">{label}</span>
       {children}
     </label>
   );
