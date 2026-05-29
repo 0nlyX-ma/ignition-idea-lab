@@ -2,6 +2,8 @@ export type Platform = "youtube" | "tiktok" | "x" | "linkedin";
 
 export type NicheKey = "tech-ai" | "gaming" | "solopreneur" | "productivity";
 
+export type PsyScores = { curiosity: number; novelty: number; authority: number };
+
 export type Idea = {
   id: string;
   score: number;
@@ -14,6 +16,7 @@ export type Idea = {
   antiHook: string;
   outline: [string, string, string];
   psychology: string;
+  psyScores: PsyScores;
 };
 
 export const NICHES: { key: NicheKey; label: string }[] = [
