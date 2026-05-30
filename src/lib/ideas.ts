@@ -24,6 +24,8 @@ export const NICHES: { key: NicheKey; label: string }[] = [
   { key: "gaming", label: "Gaming" },
   { key: "solopreneur", label: "Solopreneur / Indie Hacking" },
   { key: "productivity", label: "Productivity" },
+  { key: "finance", label: "Finance" },
+  { key: "fitness", label: "Fitness" },
 ];
 
 export const PLATFORMS: { key: Platform; label: string }[] = [
@@ -38,6 +40,8 @@ const NICHE_PLATFORM_DEFAULTS: Record<NicheKey | "mixer", Platform[]> = {
   gaming: ["youtube", "tiktok"],
   solopreneur: ["x", "linkedin", "youtube"],
   productivity: ["youtube", "x", "linkedin"],
+  finance: ["youtube", "x", "linkedin"],
+  fitness: ["youtube", "tiktok", "x"],
   mixer: ["youtube", "x", "tiktok", "linkedin"],
 };
 
