@@ -344,6 +344,16 @@ export function IdeaCard({
               <Flame className="w-3 h-3" /> Featured
             </span>
           ) : null}
+          {!hero && onExpand && !forceOpen && (
+            <button
+              onClick={(e) => { e.stopPropagation(); if (!remixActive) onExpand(idea.id); }}
+              aria-label="Enter focus mode"
+              title="Focus mode"
+              className="w-8 h-8 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-[color:var(--teal)] hover:bg-[color:var(--secondary)]/70 transition-colors"
+            >
+              <Expand className="w-4 h-4" />
+            </button>
+          )}
           {!hero && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleBookmark?.(idea.id); }}
