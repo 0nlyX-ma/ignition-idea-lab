@@ -134,6 +134,9 @@ function Index() {
 
   const { ids: bookmarkIds, toggle: toggleBookmark, has: isBookmarked } = useBookmarks();
   const { counts, bump } = useCopyCounts();
+  const { entries: history, log: logHistory, clear: clearHistory } = useHistory();
+  const totalCopies = useMemo(() => Object.values(counts).reduce((a, b) => a + b, 0), [counts]);
+  const kofi = useKofiBanner(totalCopies);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     setNewIds(getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
