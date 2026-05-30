@@ -14,6 +14,7 @@ import {
   Sparkle,
   Share2,
   Activity,
+  Expand,
 } from "lucide-react";
 import type { Idea, Platform } from "@/lib/ideas";
 
