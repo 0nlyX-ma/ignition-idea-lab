@@ -323,6 +323,21 @@ function Index() {
       <section className="px-4 sm:px-6 pb-6">
         <div className="mx-auto max-w-5xl flex flex-col items-center gap-4">
           <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="text-center max-w-2xl mx-auto px-2"
+          >
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight font-display text-foreground/95">
+              Battle-tested title formulas for creators who actually ship.
+            </h2>
+            <p className="mt-1.5 text-sm sm:text-[15px] text-muted-foreground">
+              Pick your niche → fill the{" "}
+              <span className="text-[color:var(--copper)] font-semibold">[brackets]</span> → copy. No AI fluff, no blank page.
+            </p>
+          </motion.div>
+
+          <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -342,6 +357,21 @@ function Index() {
                   {bookmarkIds.length > 0 && (
                     <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
                       {bookmarkIds.length}
+                    </span>
+                  )}
+                </span>
+              }
+            />
+            <TabPill
+              active={tab === "history"}
+              onClick={() => setTab("history")}
+              label={
+                <span className="inline-flex items-center gap-1.5">
+                  <HistoryIcon className="w-3.5 h-3.5" />
+                  History
+                  {history.length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
+                      {history.length}
                     </span>
                   )}
                 </span>
