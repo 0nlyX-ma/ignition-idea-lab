@@ -501,6 +501,19 @@ export function IdeaCard({
           </button>
         )}
       </div>
+      <AnimatePresence>
+        {previewLen !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.22 }}
+            className="overflow-hidden"
+          >
+            <PlatformPreview length={previewLen} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.article>
   );
 }
