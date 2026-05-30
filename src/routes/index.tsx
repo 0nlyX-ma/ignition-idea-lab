@@ -5,6 +5,7 @@ import {
   Coffee,
   Share2,
   Check,
+  Copy,
   Shuffle,
   Search,
   Bookmark,
