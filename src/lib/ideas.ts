@@ -1,6 +1,6 @@
 export type Platform = "youtube" | "tiktok" | "x" | "linkedin";
 
-export type NicheKey = "tech-ai" | "gaming" | "solopreneur" | "productivity";
+export type NicheKey = "tech-ai" | "gaming" | "solopreneur" | "productivity" | "finance" | "fitness";
 
 export type PsyScores = { curiosity: number; novelty: number; authority: number };
 
