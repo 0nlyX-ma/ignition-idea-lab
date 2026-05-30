@@ -188,6 +188,8 @@ function Index() {
     let pool: Idea[];
     if (tab === "collection") {
       pool = bookmarkIds.map((id) => IDEAS_BY_ID[id]).filter(Boolean) as Idea[];
+    } else if (tab === "history") {
+      pool = [];
     } else {
       pool = [...IDEAS[tab]];
     }
@@ -212,7 +214,7 @@ function Index() {
   }, [tab, query, activePlatforms, seed, bookmarkIds]);
 
   const mixer = useMemo(() => {
-    if (tab === "collection" || query) return null;
+    if (tab === "collection" || tab === "history" || query) return null;
     const rng = mulberry32(seed + 7);
     return MIXER_PICKS[Math.floor(rng() * MIXER_PICKS.length)];
   }, [tab, query, seed]);
