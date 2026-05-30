@@ -33,6 +33,7 @@ import {
 } from "@/lib/ideas";
 import { IdeaCard, parseSlots, ATTRIBUTION } from "@/components/IdeaCard";
 import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
+import { useHistory, useKofiBanner } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
   component: Index,
