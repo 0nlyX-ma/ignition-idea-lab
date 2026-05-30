@@ -162,6 +162,11 @@ export function IdeaCard({
       setPulse(true);
       setTimeout(() => setPulse(false), 600);
       onCopy?.(idea.id);
+      if (kind === "formula") {
+        const hasFilled = Object.values(values).some((v) => v && v.trim());
+        onLogHistory?.(text);
+        setPreviewLen(hasFilled ? text.length : null);
+      }
       setTimeout(() => setCopied(null), 1500);
     } catch {}
   };
