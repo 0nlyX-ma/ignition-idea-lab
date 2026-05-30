@@ -76,6 +76,7 @@ export function IdeaCard({
   initialValues,
   onValuesChange,
   onShare,
+  onLogHistory,
   remixActive = false,
   remixSelected = false,
   onRemixSelect,
@@ -94,6 +95,7 @@ export function IdeaCard({
   initialValues?: Record<number, string>;
   onValuesChange?: (values: Record<number, string>) => void;
   onShare?: (id: string, values: Record<number, string>) => void;
+  onLogHistory?: (text: string) => void;
   remixActive?: boolean;
   remixSelected?: boolean;
   onRemixSelect?: (id: string) => void;
@@ -106,6 +108,7 @@ export function IdeaCard({
   const [copied, setCopied] = useState<"formula" | "hook" | "share" | null>(null);
   const [pulse, setPulse] = useState(false);
   const [values, setValues] = useState<Record<number, string>>(initialValues ?? {});
+  const [previewLen, setPreviewLen] = useState<number | null>(null);
   const firstInputRef = useRef<HTMLInputElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
