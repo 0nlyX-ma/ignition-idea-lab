@@ -797,6 +797,109 @@ function Index() {
  * Helpers
  * ========================================================= */
 
+function HistoryPanel({
+  entries,
+  onClear,
+}: {
+  entries: { text: string; ts: number }[];
+  onClear: () => void;
+}) {
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+  const copyAgain = async (text: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1500);
+    } catch {}
+  };
+
+  const fmtTime = (ts: number) => {
+    const diff = Date.now() - ts;
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.floor(h / 24);
+    return `${d}d ago`;
+  };
+
+  if (entries.length === 0) {
+    return (
+      <div className="text-center py-20 px-6">
+        <div className="mx-auto w-16 h-16 rounded-2xl glass-subtle flex items-center justify-center mb-5">
+          <HistoryIcon className="w-7 h-7 text-[color:var(--copper)]" />
+        </div>
+        <h3 className="text-xl sm:text-2xl font-bold font-display text-gradient mb-2">
+          No copies yet.
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          Fill some brackets and hit "Copy Formula" — your last 50 will live here for easy re-use.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <HistoryIcon className="w-4 h-4 text-[color:var(--copper)]" />
+          <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-[color:var(--copper)]">
+            Title History — {entries.length} {entries.length === 1 ? "entry" : "entries"}
+          </h2>
+        </div>
+      </div>
+      <ul className="space-y-2.5">
+        {entries.map((e, i) => (
+          <motion.li
+            key={`${e.ts}-${i}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: Math.min(i * 0.02, 0.3) }}
+            className="card-brushed rounded-xl p-4 flex items-start gap-3"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] leading-snug text-foreground/95 font-medium font-display">
+                {e.text}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1.5 font-mono" style={{ fontFamily: "var(--font-mono)" }}>
+                {fmtTime(e.ts)} · {e.text.length} chars
+              </p>
+            </div>
+            <button
+              onClick={() => copyAgain(e.text, i)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[color:var(--secondary)]/70 hover:bg-[color:var(--secondary)] border border-[color:var(--copper)]/20 transition-colors"
+            >
+              {copiedIdx === i ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-[color:var(--success)]" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy again
+                </>
+              )}
+            </button>
+          </motion.li>
+        ))}
+      </ul>
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={onClear}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-muted-foreground hover:text-[color:var(--destructive)] transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Clear history
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function buildRemix(a: Idea, b: Idea): Idea {
   // Hybrid formula: take first half of A's slots/text + second half of B's
   const aParts = parseSlots(a.formula);
