@@ -107,7 +107,7 @@ function KofiButton({ size = "md", label = "Buy me an Espresso" }: { size?: "sm"
   );
 }
 
-type TabKey = NicheKey | "collection";
+type TabKey = NicheKey | "collection" | "history";
 
 // Curated wordbank for the Slot Machine variable reel
 const VAR_BANK = [
