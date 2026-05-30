@@ -5,6 +5,7 @@ import {
   Coffee,
   Share2,
   Check,
+  Copy,
   Shuffle,
   Search,
   Bookmark,
@@ -16,6 +17,8 @@ import {
   Sparkles,
   Dices,
   Combine,
+  History as HistoryIcon,
+  Trash2,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -31,6 +34,7 @@ import {
 } from "@/lib/ideas";
 import { IdeaCard, parseSlots, ATTRIBUTION } from "@/components/IdeaCard";
 import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
+import { useHistory, useKofiBanner } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -104,7 +108,7 @@ function KofiButton({ size = "md", label = "Buy me an Espresso" }: { size?: "sm"
   );
 }
 
-type TabKey = NicheKey | "collection";
+type TabKey = NicheKey | "collection" | "history";
 
 // Curated wordbank for the Slot Machine variable reel
 const VAR_BANK = [
@@ -131,6 +135,9 @@ function Index() {
 
   const { ids: bookmarkIds, toggle: toggleBookmark, has: isBookmarked } = useBookmarks();
   const { counts, bump } = useCopyCounts();
+  const { entries: history, log: logHistory, clear: clearHistory } = useHistory();
+  const totalCopies = useMemo(() => Object.values(counts).reduce((a, b) => a + b, 0), [counts]);
+  const kofi = useKofiBanner(totalCopies);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     setNewIds(getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
@@ -185,6 +192,8 @@ function Index() {
     let pool: Idea[];
     if (tab === "collection") {
       pool = bookmarkIds.map((id) => IDEAS_BY_ID[id]).filter(Boolean) as Idea[];
+    } else if (tab === "history") {
+      pool = [];
     } else {
       pool = [...IDEAS[tab]];
     }
@@ -209,7 +218,7 @@ function Index() {
   }, [tab, query, activePlatforms, seed, bookmarkIds]);
 
   const mixer = useMemo(() => {
-    if (tab === "collection" || query) return null;
+    if (tab === "collection" || tab === "history" || query) return null;
     const rng = mulberry32(seed + 7);
     return MIXER_PICKS[Math.floor(rng() * MIXER_PICKS.length)];
   }, [tab, query, seed]);
@@ -315,6 +324,21 @@ function Index() {
       <section className="px-4 sm:px-6 pb-6">
         <div className="mx-auto max-w-5xl flex flex-col items-center gap-4">
           <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="text-center max-w-2xl mx-auto px-2"
+          >
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight font-display text-foreground/95">
+              Battle-tested title formulas for creators who actually ship.
+            </h2>
+            <p className="mt-1.5 text-sm sm:text-[15px] text-muted-foreground">
+              Pick your niche → fill the{" "}
+              <span className="text-[color:var(--copper)] font-semibold">[brackets]</span> → copy. No AI fluff, no blank page.
+            </p>
+          </motion.div>
+
+          <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -334,6 +358,21 @@ function Index() {
                   {bookmarkIds.length > 0 && (
                     <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
                       {bookmarkIds.length}
+                    </span>
+                  )}
+                </span>
+              }
+            />
+            <TabPill
+              active={tab === "history"}
+              onClick={() => setTab("history")}
+              label={
+                <span className="inline-flex items-center gap-1.5">
+                  <HistoryIcon className="w-3.5 h-3.5" />
+                  History
+                  {history.length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
+                      {history.length}
                     </span>
                   )}
                 </span>
@@ -460,66 +499,75 @@ function Index() {
       {/* GRID */}
       <main className="px-4 sm:px-6 pb-32 sm:pb-24">
         <div className="mx-auto max-w-7xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${tab}-${seed}-${query}-${[...activePlatforms].join(",")}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {filtered.length === 0 ? (
-                <EmptyState tab={tab} clear={() => { setQuery(""); setActivePlatforms(new Set()); }} />
-              ) : (
-                <>
-                  {filtered.map((idea, i) => (
-                    focusedId === idea.id ? (
-                      <div key={`${idea.id}-${seed}-ghost`} className="opacity-0 pointer-events-none" aria-hidden />
-                    ) : (
-                      <IdeaCard
-                        key={`${idea.id}-${seed}`}
-                        idea={idea}
-                        index={i}
-                        layoutId={`card-${idea.id}`}
-                        isNew={newIds.has(idea.id)}
-                        bookmarked={isBookmarked(idea.id)}
-                        onToggleBookmark={toggleBookmark}
-                        onCopy={bump}
-                        onShare={handleShareFormula}
-                        remixActive={remixMode}
-                        remixSelected={remixPicks.includes(idea.id)}
-                        onRemixSelect={handleRemixSelect}
-                        onExpand={(id) => !remixMode && setFocusedId(id)}
-                        initialValues={prefill?.id === idea.id ? prefill.values : undefined}
-                      />
-                    )
-                  ))}
-                  {mixer && focusedId !== mixer.id && (
-                    <IdeaCard
-                      key={`${mixer.id}-${seed}-mx`}
-                      idea={mixer}
-                      index={filtered.length}
-                      variant="mixer"
-                      layoutId={`card-${mixer.id}`}
-                      isNew={newIds.has(mixer.id)}
-                      bookmarked={isBookmarked(mixer.id)}
-                      onToggleBookmark={toggleBookmark}
-                      onCopy={bump}
-                      onShare={handleShareFormula}
-                      remixActive={remixMode}
-                      remixSelected={remixPicks.includes(mixer.id)}
-                      onRemixSelect={handleRemixSelect}
-                      onExpand={(id) => !remixMode && setFocusedId(id)}
-                    />
+          {tab === "history" ? (
+            <HistoryPanel entries={history} onClear={clearHistory} />
+          ) : (
+            <>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${tab}-${seed}-${query}-${[...activePlatforms].join(",")}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                  {filtered.length === 0 ? (
+                    <EmptyState tab={tab} clear={() => { setQuery(""); setActivePlatforms(new Set()); }} />
+                  ) : (
+                    <>
+                      {filtered.map((idea, i) => (
+                        focusedId === idea.id ? (
+                          <div key={`${idea.id}-${seed}-ghost`} className="opacity-0 pointer-events-none" aria-hidden />
+                        ) : (
+                          <IdeaCard
+                            key={`${idea.id}-${seed}`}
+                            idea={idea}
+                            index={i}
+                            layoutId={`card-${idea.id}`}
+                            isNew={newIds.has(idea.id)}
+                            bookmarked={isBookmarked(idea.id)}
+                            onToggleBookmark={toggleBookmark}
+                            onCopy={bump}
+                            onShare={handleShareFormula}
+                            onLogHistory={logHistory}
+                            remixActive={remixMode}
+                            remixSelected={remixPicks.includes(idea.id)}
+                            onRemixSelect={handleRemixSelect}
+                            onExpand={(id) => !remixMode && setFocusedId(id)}
+                            initialValues={prefill?.id === idea.id ? prefill.values : undefined}
+                          />
+                        )
+                      ))}
+                      {mixer && focusedId !== mixer.id && (
+                        <IdeaCard
+                          key={`${mixer.id}-${seed}-mx`}
+                          idea={mixer}
+                          index={filtered.length}
+                          variant="mixer"
+                          layoutId={`card-${mixer.id}`}
+                          isNew={newIds.has(mixer.id)}
+                          bookmarked={isBookmarked(mixer.id)}
+                          onToggleBookmark={toggleBookmark}
+                          onCopy={bump}
+                          onShare={handleShareFormula}
+                          onLogHistory={logHistory}
+                          remixActive={remixMode}
+                          remixSelected={remixPicks.includes(mixer.id)}
+                          onRemixSelect={handleRemixSelect}
+                          onExpand={(id) => !remixMode && setFocusedId(id)}
+                        />
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </motion.div>
-          </AnimatePresence>
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Double-click any formula title to enter <span className="text-[color:var(--copper)] font-semibold">Focus Mode</span>.
-          </p>
+                </motion.div>
+              </AnimatePresence>
+              <p className="mt-6 text-center text-xs text-muted-foreground">
+                Tap the <span className="text-[color:var(--teal)] font-semibold">expand icon</span> (or double-click any title) to enter{" "}
+                <span className="text-[color:var(--copper)] font-semibold">Focus Mode</span>.
+              </p>
+            </>
+          )}
         </div>
       </main>
 
@@ -536,6 +584,65 @@ function Index() {
           <span className="text-gradient-brand">Shuffle Grid</span>
         </motion.button>
       </div>
+
+      {/* KO-FI BANNER (after 10+ copies) */}
+      <AnimatePresence>
+        {kofi.show && (
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="px-4 sm:px-6 pb-6"
+          >
+            <div
+              className="mx-auto max-w-3xl card-brushed rounded-2xl p-4 sm:p-5 flex items-center gap-4 relative"
+              style={{
+                border: "1px solid color-mix(in oklab, var(--copper) 55%, transparent)",
+                boxShadow: "0 12px 40px -16px color-mix(in oklab, var(--copper) 55%, transparent)",
+              }}
+            >
+              <div
+                className="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-xl shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, var(--copper), var(--teal))",
+                  boxShadow: "0 0 22px -4px color-mix(in oklab, var(--copper) 60%, transparent)",
+                }}
+              >
+                <Coffee className="w-5 h-5 text-[color:var(--background)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm sm:text-[15px] font-semibold text-foreground/95 leading-snug">
+                  You've copied 10+ formulas today. Fuel the engine? ☕
+                </p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  Every espresso ships more formulas — and keeps this tool 100% free.
+                </p>
+              </div>
+              <a
+                href={KOFI_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold text-[color:var(--background)]"
+                style={{
+                  background: "linear-gradient(135deg, var(--copper), var(--copper-bright))",
+                  boxShadow: "0 8px 24px -8px color-mix(in oklab, var(--copper) 60%, transparent)",
+                }}
+              >
+                <Coffee className="w-4 h-4" />
+                Buy a coffee
+              </a>
+              <button
+                onClick={kofi.dismiss}
+                aria-label="Dismiss"
+                className="absolute top-2 right-2 w-7 h-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[color:var(--secondary)]/70"
+              >
+                <XClose className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
       {/* FOOTER */}
       <footer className="px-4 sm:px-6 pb-24 sm:pb-16">
@@ -690,6 +797,109 @@ function Index() {
 /* =========================================================
  * Helpers
  * ========================================================= */
+
+function HistoryPanel({
+  entries,
+  onClear,
+}: {
+  entries: { text: string; ts: number }[];
+  onClear: () => void;
+}) {
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+  const copyAgain = async (text: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1500);
+    } catch {}
+  };
+
+  const fmtTime = (ts: number) => {
+    const diff = Date.now() - ts;
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.floor(h / 24);
+    return `${d}d ago`;
+  };
+
+  if (entries.length === 0) {
+    return (
+      <div className="text-center py-20 px-6">
+        <div className="mx-auto w-16 h-16 rounded-2xl glass-subtle flex items-center justify-center mb-5">
+          <HistoryIcon className="w-7 h-7 text-[color:var(--copper)]" />
+        </div>
+        <h3 className="text-xl sm:text-2xl font-bold font-display text-gradient mb-2">
+          No copies yet.
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          Fill some brackets and hit "Copy Formula" — your last 50 will live here for easy re-use.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <HistoryIcon className="w-4 h-4 text-[color:var(--copper)]" />
+          <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-[color:var(--copper)]">
+            Title History — {entries.length} {entries.length === 1 ? "entry" : "entries"}
+          </h2>
+        </div>
+      </div>
+      <ul className="space-y-2.5">
+        {entries.map((e, i) => (
+          <motion.li
+            key={`${e.ts}-${i}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: Math.min(i * 0.02, 0.3) }}
+            className="card-brushed rounded-xl p-4 flex items-start gap-3"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] leading-snug text-foreground/95 font-medium font-display">
+                {e.text}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1.5 font-mono" style={{ fontFamily: "var(--font-mono)" }}>
+                {fmtTime(e.ts)} · {e.text.length} chars
+              </p>
+            </div>
+            <button
+              onClick={() => copyAgain(e.text, i)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[color:var(--secondary)]/70 hover:bg-[color:var(--secondary)] border border-[color:var(--copper)]/20 transition-colors"
+            >
+              {copiedIdx === i ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-[color:var(--success)]" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy again
+                </>
+              )}
+            </button>
+          </motion.li>
+        ))}
+      </ul>
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={onClear}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-muted-foreground hover:text-[color:var(--destructive)] transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Clear history
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function buildRemix(a: Idea, b: Idea): Idea {
   // Hybrid formula: take first half of A's slots/text + second half of B's

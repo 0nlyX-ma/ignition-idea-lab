@@ -14,6 +14,7 @@ import {
   Sparkle,
   Share2,
   Activity,
+  Expand,
 } from "lucide-react";
 import type { Idea, Platform } from "@/lib/ideas";
 
@@ -75,6 +76,7 @@ export function IdeaCard({
   initialValues,
   onValuesChange,
   onShare,
+  onLogHistory,
   remixActive = false,
   remixSelected = false,
   onRemixSelect,
@@ -93,6 +95,7 @@ export function IdeaCard({
   initialValues?: Record<number, string>;
   onValuesChange?: (values: Record<number, string>) => void;
   onShare?: (id: string, values: Record<number, string>) => void;
+  onLogHistory?: (text: string) => void;
   remixActive?: boolean;
   remixSelected?: boolean;
   onRemixSelect?: (id: string) => void;
@@ -105,6 +108,7 @@ export function IdeaCard({
   const [copied, setCopied] = useState<"formula" | "hook" | "share" | null>(null);
   const [pulse, setPulse] = useState(false);
   const [values, setValues] = useState<Record<number, string>>(initialValues ?? {});
+  const [previewLen, setPreviewLen] = useState<number | null>(null);
   const firstInputRef = useRef<HTMLInputElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -158,6 +162,11 @@ export function IdeaCard({
       setPulse(true);
       setTimeout(() => setPulse(false), 600);
       onCopy?.(idea.id);
+      if (kind === "formula") {
+        const hasFilled = Object.values(values).some((v) => v && v.trim());
+        onLogHistory?.(text);
+        setPreviewLen(hasFilled ? text.length : null);
+      }
       setTimeout(() => setCopied(null), 1500);
     } catch {}
   };
@@ -335,6 +344,16 @@ export function IdeaCard({
               <Flame className="w-3 h-3" /> Featured
             </span>
           ) : null}
+          {!hero && onExpand && !forceOpen && (
+            <button
+              onClick={(e) => { e.stopPropagation(); if (!remixActive) onExpand(idea.id); }}
+              aria-label="Enter focus mode"
+              title="Focus mode"
+              className="w-8 h-8 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-[color:var(--teal)] hover:bg-[color:var(--secondary)]/70 transition-colors"
+            >
+              <Expand className="w-4 h-4" />
+            </button>
+          )}
           {!hero && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleBookmark?.(idea.id); }}
@@ -482,7 +501,55 @@ export function IdeaCard({
           </button>
         )}
       </div>
+      <AnimatePresence>
+        {previewLen !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.22 }}
+            className="overflow-hidden"
+          >
+            <PlatformPreview length={previewLen} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.article>
+  );
+}
+
+function PlatformPreview({ length }: { length: number }) {
+  let label: string;
+  let color: string;
+  let dot: string;
+  if (length < 60) {
+    label = "✓ YouTube safe";
+    color = "var(--teal)";
+    dot = "var(--teal)";
+  } else if (length <= 100) {
+    label = "⚠ May truncate in feed";
+    color = "var(--copper)";
+    dot = "var(--copper)";
+  } else {
+    label = "✗ Too long for most platforms";
+    color = "var(--destructive)";
+    dot = "var(--destructive)";
+  }
+  return (
+    <div
+      className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-semibold"
+      style={{
+        background: `color-mix(in oklab, ${color} 10%, transparent)`,
+        border: `1px solid color-mix(in oklab, ${color} 35%, transparent)`,
+        color: color,
+      }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: dot }} />
+      <span>{label}</span>
+      <span className="font-mono opacity-70" style={{ fontFamily: "var(--font-mono)" }}>
+        {length} chars
+      </span>
+    </div>
   );
 }
 
