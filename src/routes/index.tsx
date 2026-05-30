@@ -584,6 +584,65 @@ function Index() {
         </motion.button>
       </div>
 
+      {/* KO-FI BANNER (after 10+ copies) */}
+      <AnimatePresence>
+        {kofi.show && (
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="px-4 sm:px-6 pb-6"
+          >
+            <div
+              className="mx-auto max-w-3xl card-brushed rounded-2xl p-4 sm:p-5 flex items-center gap-4 relative"
+              style={{
+                border: "1px solid color-mix(in oklab, var(--copper) 55%, transparent)",
+                boxShadow: "0 12px 40px -16px color-mix(in oklab, var(--copper) 55%, transparent)",
+              }}
+            >
+              <div
+                className="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-xl shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, var(--copper), var(--teal))",
+                  boxShadow: "0 0 22px -4px color-mix(in oklab, var(--copper) 60%, transparent)",
+                }}
+              >
+                <Coffee className="w-5 h-5 text-[color:var(--background)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm sm:text-[15px] font-semibold text-foreground/95 leading-snug">
+                  You've copied 10+ formulas today. Fuel the engine? ☕
+                </p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  Every espresso ships more formulas — and keeps this tool 100% free.
+                </p>
+              </div>
+              <a
+                href={KOFI_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold text-[color:var(--background)]"
+                style={{
+                  background: "linear-gradient(135deg, var(--copper), var(--copper-bright))",
+                  boxShadow: "0 8px 24px -8px color-mix(in oklab, var(--copper) 60%, transparent)",
+                }}
+              >
+                <Coffee className="w-4 h-4" />
+                Buy a coffee
+              </a>
+              <button
+                onClick={kofi.dismiss}
+                aria-label="Dismiss"
+                className="absolute top-2 right-2 w-7 h-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-[color:var(--secondary)]/70"
+              >
+                <XClose className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
       {/* FOOTER */}
       <footer className="px-4 sm:px-6 pb-24 sm:pb-16">
         <div className="mx-auto max-w-4xl">
