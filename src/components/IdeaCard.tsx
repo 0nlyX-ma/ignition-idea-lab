@@ -518,6 +518,41 @@ export function IdeaCard({
   );
 }
 
+function PlatformPreview({ length }: { length: number }) {
+  let label: string;
+  let color: string;
+  let dot: string;
+  if (length < 60) {
+    label = "✓ YouTube safe";
+    color = "var(--teal)";
+    dot = "var(--teal)";
+  } else if (length <= 100) {
+    label = "⚠ May truncate in feed";
+    color = "var(--copper)";
+    dot = "var(--copper)";
+  } else {
+    label = "✗ Too long for most platforms";
+    color = "var(--destructive)";
+    dot = "var(--destructive)";
+  }
+  return (
+    <div
+      className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-semibold"
+      style={{
+        background: `color-mix(in oklab, ${color} 10%, transparent)`,
+        border: `1px solid color-mix(in oklab, ${color} 35%, transparent)`,
+        color: color,
+      }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: dot }} />
+      <span>{label}</span>
+      <span className="font-mono opacity-70" style={{ fontFamily: "var(--font-mono)" }}>
+        {length} chars
+      </span>
+    </div>
+  );
+}
+
 function DnaBar({ label, value }: { label: string; value: number }) {
   return (
     <div className="mb-2 last:mb-0">
