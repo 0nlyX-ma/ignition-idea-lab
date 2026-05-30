@@ -498,66 +498,75 @@ function Index() {
       {/* GRID */}
       <main className="px-4 sm:px-6 pb-32 sm:pb-24">
         <div className="mx-auto max-w-7xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${tab}-${seed}-${query}-${[...activePlatforms].join(",")}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {filtered.length === 0 ? (
-                <EmptyState tab={tab} clear={() => { setQuery(""); setActivePlatforms(new Set()); }} />
-              ) : (
-                <>
-                  {filtered.map((idea, i) => (
-                    focusedId === idea.id ? (
-                      <div key={`${idea.id}-${seed}-ghost`} className="opacity-0 pointer-events-none" aria-hidden />
-                    ) : (
-                      <IdeaCard
-                        key={`${idea.id}-${seed}`}
-                        idea={idea}
-                        index={i}
-                        layoutId={`card-${idea.id}`}
-                        isNew={newIds.has(idea.id)}
-                        bookmarked={isBookmarked(idea.id)}
-                        onToggleBookmark={toggleBookmark}
-                        onCopy={bump}
-                        onShare={handleShareFormula}
-                        remixActive={remixMode}
-                        remixSelected={remixPicks.includes(idea.id)}
-                        onRemixSelect={handleRemixSelect}
-                        onExpand={(id) => !remixMode && setFocusedId(id)}
-                        initialValues={prefill?.id === idea.id ? prefill.values : undefined}
-                      />
-                    )
-                  ))}
-                  {mixer && focusedId !== mixer.id && (
-                    <IdeaCard
-                      key={`${mixer.id}-${seed}-mx`}
-                      idea={mixer}
-                      index={filtered.length}
-                      variant="mixer"
-                      layoutId={`card-${mixer.id}`}
-                      isNew={newIds.has(mixer.id)}
-                      bookmarked={isBookmarked(mixer.id)}
-                      onToggleBookmark={toggleBookmark}
-                      onCopy={bump}
-                      onShare={handleShareFormula}
-                      remixActive={remixMode}
-                      remixSelected={remixPicks.includes(mixer.id)}
-                      onRemixSelect={handleRemixSelect}
-                      onExpand={(id) => !remixMode && setFocusedId(id)}
-                    />
+          {tab === "history" ? (
+            <HistoryPanel entries={history} onClear={clearHistory} />
+          ) : (
+            <>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${tab}-${seed}-${query}-${[...activePlatforms].join(",")}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                  {filtered.length === 0 ? (
+                    <EmptyState tab={tab} clear={() => { setQuery(""); setActivePlatforms(new Set()); }} />
+                  ) : (
+                    <>
+                      {filtered.map((idea, i) => (
+                        focusedId === idea.id ? (
+                          <div key={`${idea.id}-${seed}-ghost`} className="opacity-0 pointer-events-none" aria-hidden />
+                        ) : (
+                          <IdeaCard
+                            key={`${idea.id}-${seed}`}
+                            idea={idea}
+                            index={i}
+                            layoutId={`card-${idea.id}`}
+                            isNew={newIds.has(idea.id)}
+                            bookmarked={isBookmarked(idea.id)}
+                            onToggleBookmark={toggleBookmark}
+                            onCopy={bump}
+                            onShare={handleShareFormula}
+                            onLogHistory={logHistory}
+                            remixActive={remixMode}
+                            remixSelected={remixPicks.includes(idea.id)}
+                            onRemixSelect={handleRemixSelect}
+                            onExpand={(id) => !remixMode && setFocusedId(id)}
+                            initialValues={prefill?.id === idea.id ? prefill.values : undefined}
+                          />
+                        )
+                      ))}
+                      {mixer && focusedId !== mixer.id && (
+                        <IdeaCard
+                          key={`${mixer.id}-${seed}-mx`}
+                          idea={mixer}
+                          index={filtered.length}
+                          variant="mixer"
+                          layoutId={`card-${mixer.id}`}
+                          isNew={newIds.has(mixer.id)}
+                          bookmarked={isBookmarked(mixer.id)}
+                          onToggleBookmark={toggleBookmark}
+                          onCopy={bump}
+                          onShare={handleShareFormula}
+                          onLogHistory={logHistory}
+                          remixActive={remixMode}
+                          remixSelected={remixPicks.includes(mixer.id)}
+                          onRemixSelect={handleRemixSelect}
+                          onExpand={(id) => !remixMode && setFocusedId(id)}
+                        />
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </motion.div>
-          </AnimatePresence>
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Double-click any formula title to enter <span className="text-[color:var(--copper)] font-semibold">Focus Mode</span>.
-          </p>
+                </motion.div>
+              </AnimatePresence>
+              <p className="mt-6 text-center text-xs text-muted-foreground">
+                Tap the <span className="text-[color:var(--teal)] font-semibold">expand icon</span> (or double-click any title) to enter{" "}
+                <span className="text-[color:var(--copper)] font-semibold">Focus Mode</span>.
+              </p>
+            </>
+          )}
         </div>
       </main>
 
