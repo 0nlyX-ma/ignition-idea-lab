@@ -16,6 +16,8 @@ import {
   Sparkles,
   Dices,
   Combine,
+  History as HistoryIcon,
+  Trash2,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
