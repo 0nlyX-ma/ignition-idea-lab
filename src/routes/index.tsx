@@ -317,7 +317,10 @@ function Index() {
                 Creator <span className="text-gradient-brand">Engine</span>
               </span>
             </a>
-            <KofiButton size="sm" />
+            <div className="flex items-center gap-2">
+              <KofiButton size="sm" />
+              <StreakBadge count={visitStreak} />
+            </div>
           </nav>
         </div>
       </header>
