@@ -19,6 +19,10 @@ import {
   Combine,
   History as HistoryIcon,
   Trash2,
+  Target,
+  Kanban,
+  Flame,
+  Plus,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
