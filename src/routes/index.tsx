@@ -341,6 +341,29 @@ function Index() {
         </div>
       </section>
 
+      {/* QUICK STATS */}
+      <QuickStatsBar
+        copied={totalCopies}
+        saved={bookmarkIds.length}
+        pipeline={pipeline.items.length}
+        streak={visitStreak}
+      />
+
+      {/* DAILY CHALLENGE */}
+      <DailyChallengeCard
+        heroId={heroIdea.id}
+        completedToday={challenge.completedToday}
+        streak={challenge.streak}
+        onComplete={challenge.complete}
+        onCopy={bump}
+        onShare={handleShareFormula}
+        onLogHistory={logHistory}
+        onAddToPipeline={pipeline.add}
+        bookmarked={isBookmarked}
+        onToggleBookmark={toggleBookmark}
+      />
+
+
       {/* CONTROL BAR: Niches + Stuck + Remix */}
       <section className="px-4 sm:px-6 pb-6">
         <div className="mx-auto max-w-5xl flex flex-col items-center gap-4">
