@@ -233,7 +233,7 @@ function Index() {
   }, [tab, query, activePlatforms, seed, bookmarkIds]);
 
   const mixer = useMemo(() => {
-    if (tab === "collection" || tab === "history" || query) return null;
+    if (tab === "collection" || tab === "history" || tab === "pipeline" || query) return null;
     const rng = mulberry32(seed + 7);
     return MIXER_PICKS[Math.floor(rng() * MIXER_PICKS.length)];
   }, [tab, query, seed]);
