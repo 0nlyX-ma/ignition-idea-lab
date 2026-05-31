@@ -39,6 +39,17 @@ import {
 import { IdeaCard, parseSlots, ATTRIBUTION } from "@/components/IdeaCard";
 import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
 import { useHistory, useKofiBanner } from "@/lib/history";
+import {
+  useChallenge,
+  usePipeline,
+  useVisitStreak,
+  hashString,
+  msUntilMidnight,
+  formatCountdown,
+  PIPELINE_COLUMNS,
+  type PipelineColumn,
+  type PipelineItem,
+} from "@/lib/engagement";
 
 export const Route = createFileRoute("/")({
   component: Index,
