@@ -632,6 +632,7 @@ function Index() {
                           remixSelected={remixPicks.includes(mixer.id)}
                           onRemixSelect={handleRemixSelect}
                           onExpand={(id) => !remixMode && setFocusedId(id)}
+                          onAddToPipeline={pipeline.add}
                         />
                       )}
                     </>
