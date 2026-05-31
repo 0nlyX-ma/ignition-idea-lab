@@ -1005,13 +1005,25 @@ function buildRemix(a: Idea, b: Idea): Idea {
   };
 }
 
-function TabPill({ active, onClick, label }: { active: boolean; onClick: () => void; label: React.ReactNode }) {
+function TabPill({
+  active,
+  onClick,
+  label,
+  progress,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: React.ReactNode;
+  progress?: { done: number; total: number };
+}) {
+  const pct = progress && progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
   return (
     <button
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`relative px-4 sm:px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${
+      title={progress ? `${progress.done}/${progress.total} copied` : undefined}
+      className={`relative px-4 sm:px-5 py-2.5 rounded-full text-sm font-semibold transition-colors group ${
         active ? "text-[color:var(--background)]" : "text-foreground/80 hover:text-foreground glass-subtle"
       }`}
     >
@@ -1026,7 +1038,34 @@ function TabPill({ active, onClick, label }: { active: boolean; onClick: () => v
           transition={{ type: "spring", stiffness: 350, damping: 30 }}
         />
       )}
-      <span className="relative">{label}</span>
+      <span className="relative inline-flex items-center gap-1.5">
+        {label}
+        {progress && progress.done > 0 && (
+          <span
+            className={`text-[10px] font-mono opacity-70 ${
+              active ? "text-[color:var(--background)]" : "text-muted-foreground"
+            }`}
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            {progress.done}/{progress.total}
+          </span>
+        )}
+      </span>
+      {progress && !active && progress.done > 0 && (
+        <span
+          aria-hidden
+          className="absolute left-3 right-3 bottom-1 h-[2px] rounded-full overflow-hidden opacity-60"
+          style={{ background: "color-mix(in oklab, var(--copper) 18%, transparent)" }}
+        >
+          <span
+            className="block h-full rounded-full"
+            style={{
+              width: `${pct}%`,
+              background: "linear-gradient(90deg, var(--teal), var(--copper))",
+            }}
+          />
+        </span>
+      )}
     </button>
   );
 }
