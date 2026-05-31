@@ -389,9 +389,19 @@ function Index() {
             className="flex flex-wrap justify-center gap-2 sm:gap-2.5"
             role="tablist"
           >
-            {NICHES.map((n) => (
-              <TabPill key={n.key} active={tab === n.key} onClick={() => setTab(n.key)} label={n.label} />
-            ))}
+            {NICHES.map((n) => {
+              const total = IDEAS[n.key].length;
+              const done = IDEAS[n.key].filter((i) => (counts[i.id] ?? 0) > 0).length;
+              return (
+                <TabPill
+                  key={n.key}
+                  active={tab === n.key}
+                  onClick={() => setTab(n.key)}
+                  label={n.label}
+                  progress={{ done, total }}
+                />
+              );
+            })}
             <TabPill
               active={tab === "collection"}
               onClick={() => setTab("collection")}
@@ -402,6 +412,21 @@ function Index() {
                   {bookmarkIds.length > 0 && (
                     <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
                       {bookmarkIds.length}
+                    </span>
+                  )}
+                </span>
+              }
+            />
+            <TabPill
+              active={tab === "pipeline"}
+              onClick={() => setTab("pipeline")}
+              label={
+                <span className="inline-flex items-center gap-1.5">
+                  <Kanban className="w-3.5 h-3.5" />
+                  Pipeline
+                  {pipeline.items.length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
+                      {pipeline.items.length}
                     </span>
                   )}
                 </span>
