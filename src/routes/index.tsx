@@ -153,6 +153,9 @@ function Index() {
   const { entries: history, log: logHistory, clear: clearHistory } = useHistory();
   const totalCopies = useMemo(() => Object.values(counts).reduce((a, b) => a + b, 0), [counts]);
   const kofi = useKofiBanner(totalCopies);
+  const challenge = useChallenge();
+  const pipeline = usePipeline();
+  const visitStreak = useVisitStreak();
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     setNewIds(getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
