@@ -814,6 +814,7 @@ function Index() {
                 bookmarked={isBookmarked(focusedId)}
                 onToggleBookmark={toggleBookmark}
                 initialValues={prefill?.id === focusedId ? prefill.values : undefined}
+                onAddToPipeline={pipeline.add}
               />
             </div>
           </motion.div>
