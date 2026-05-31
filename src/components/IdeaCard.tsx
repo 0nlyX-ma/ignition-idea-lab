@@ -370,6 +370,11 @@ export function IdeaCard({
               <Bookmark className={`w-4 h-4 ${bookmarked ? "fill-current" : ""}`} />
             </button>
           )}
+          {!hero && onAddToPipeline && (
+            <PipelineAddBtn
+              onAdd={() => onAddToPipeline(buildFilled(idea.formula, values), idea.niche)}
+            />
+          )}
         </div>
       </div>
 
