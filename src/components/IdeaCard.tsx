@@ -651,3 +651,26 @@ function CopyBtn({
     </button>
   );
 }
+
+function PipelineAddBtn({ onAdd }: { onAdd: () => void }) {
+  const [added, setAdded] = useState(false);
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onAdd();
+        setAdded(true);
+        setTimeout(() => setAdded(false), 1400);
+      }}
+      aria-label="Add to pipeline"
+      title="Add to pipeline"
+      className={`w-8 h-8 inline-flex items-center justify-center rounded-full transition-colors ${
+        added
+          ? "bg-[color:var(--teal)]/20 text-[color:var(--teal)]"
+          : "text-muted-foreground hover:text-[color:var(--teal)] hover:bg-[color:var(--secondary)]/70"
+      }`}
+    >
+      {added ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+    </button>
+  );
+}
