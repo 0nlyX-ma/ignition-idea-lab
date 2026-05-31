@@ -611,6 +611,7 @@ function Index() {
                             onRemixSelect={handleRemixSelect}
                             onExpand={(id) => !remixMode && setFocusedId(id)}
                             initialValues={prefill?.id === idea.id ? prefill.values : undefined}
+                            onAddToPipeline={pipeline.add}
                           />
                         )
                       ))}
