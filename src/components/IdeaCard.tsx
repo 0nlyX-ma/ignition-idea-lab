@@ -83,6 +83,7 @@ export function IdeaCard({
   onRemixSelect,
   onExpand,
   forceOpen = false,
+  onAddToPipeline,
 }: {
   idea: Idea;
   index?: number;
@@ -102,6 +103,7 @@ export function IdeaCard({
   onRemixSelect?: (id: string) => void;
   onExpand?: (id: string) => void;
   forceOpen?: boolean;
+  onAddToPipeline?: (text: string, niche: string) => void;
 }) {
   const [open, setOpen] = useState(forceOpen || hero);
   const [tipOpen, setTipOpen] = useState(false);
