@@ -207,7 +207,7 @@ function Index() {
     let pool: Idea[];
     if (tab === "collection") {
       pool = bookmarkIds.map((id) => IDEAS_BY_ID[id]).filter(Boolean) as Idea[];
-    } else if (tab === "history") {
+    } else if (tab === "history" || tab === "pipeline") {
       pool = [];
     } else {
       pool = [...IDEAS[tab]];
