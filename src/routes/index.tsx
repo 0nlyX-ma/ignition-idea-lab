@@ -570,6 +570,12 @@ function Index() {
         <div className="mx-auto max-w-7xl">
           {tab === "history" ? (
             <HistoryPanel entries={history} onClear={clearHistory} />
+          ) : tab === "pipeline" ? (
+            <PipelinePanel
+              items={pipeline.items}
+              onMove={pipeline.move}
+              onRemove={pipeline.remove}
+            />
           ) : (
             <>
               <AnimatePresence mode="wait">
