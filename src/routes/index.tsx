@@ -19,6 +19,10 @@ import {
   Combine,
   History as HistoryIcon,
   Trash2,
+  Target,
+  Kanban,
+  Flame,
+  Plus,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -35,6 +39,17 @@ import {
 import { IdeaCard, parseSlots, ATTRIBUTION } from "@/components/IdeaCard";
 import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
 import { useHistory, useKofiBanner } from "@/lib/history";
+import {
+  useChallenge,
+  usePipeline,
+  useVisitStreak,
+  hashString,
+  msUntilMidnight,
+  formatCountdown,
+  PIPELINE_COLUMNS,
+  type PipelineColumn,
+  type PipelineItem,
+} from "@/lib/engagement";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -108,7 +123,7 @@ function KofiButton({ size = "md", label = "Buy me an Espresso" }: { size?: "sm"
   );
 }
 
-type TabKey = NicheKey | "collection" | "history";
+type TabKey = NicheKey | "collection" | "history" | "pipeline";
 
 // Curated wordbank for the Slot Machine variable reel
 const VAR_BANK = [
@@ -138,6 +153,9 @@ function Index() {
   const { entries: history, log: logHistory, clear: clearHistory } = useHistory();
   const totalCopies = useMemo(() => Object.values(counts).reduce((a, b) => a + b, 0), [counts]);
   const kofi = useKofiBanner(totalCopies);
+  const challenge = useChallenge();
+  const pipeline = usePipeline();
+  const visitStreak = useVisitStreak();
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     setNewIds(getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
@@ -192,7 +210,7 @@ function Index() {
     let pool: Idea[];
     if (tab === "collection") {
       pool = bookmarkIds.map((id) => IDEAS_BY_ID[id]).filter(Boolean) as Idea[];
-    } else if (tab === "history") {
+    } else if (tab === "history" || tab === "pipeline") {
       pool = [];
     } else {
       pool = [...IDEAS[tab]];
@@ -218,7 +236,7 @@ function Index() {
   }, [tab, query, activePlatforms, seed, bookmarkIds]);
 
   const mixer = useMemo(() => {
-    if (tab === "collection" || tab === "history" || query) return null;
+    if (tab === "collection" || tab === "history" || tab === "pipeline" || query) return null;
     const rng = mulberry32(seed + 7);
     return MIXER_PICKS[Math.floor(rng() * MIXER_PICKS.length)];
   }, [tab, query, seed]);
@@ -299,7 +317,10 @@ function Index() {
                 Creator <span className="text-gradient-brand">Engine</span>
               </span>
             </a>
-            <KofiButton size="sm" />
+            <div className="flex items-center gap-2">
+              <KofiButton size="sm" />
+              <StreakBadge count={visitStreak} />
+            </div>
           </nav>
         </div>
       </header>
@@ -319,6 +340,29 @@ function Index() {
           </p>
         </div>
       </section>
+
+      {/* QUICK STATS */}
+      <QuickStatsBar
+        copied={totalCopies}
+        saved={bookmarkIds.length}
+        pipeline={pipeline.items.length}
+        streak={visitStreak}
+      />
+
+      {/* DAILY CHALLENGE */}
+      <DailyChallengeCard
+        heroId={heroIdea.id}
+        completedToday={challenge.completedToday}
+        streak={challenge.streak}
+        onComplete={challenge.complete}
+        onCopy={bump}
+        onShare={handleShareFormula}
+        onLogHistory={logHistory}
+        onAddToPipeline={pipeline.add}
+        bookmarked={isBookmarked}
+        onToggleBookmark={toggleBookmark}
+      />
+
 
       {/* CONTROL BAR: Niches + Stuck + Remix */}
       <section className="px-4 sm:px-6 pb-6">
@@ -345,9 +389,19 @@ function Index() {
             className="flex flex-wrap justify-center gap-2 sm:gap-2.5"
             role="tablist"
           >
-            {NICHES.map((n) => (
-              <TabPill key={n.key} active={tab === n.key} onClick={() => setTab(n.key)} label={n.label} />
-            ))}
+            {NICHES.map((n) => {
+              const total = IDEAS[n.key].length;
+              const done = IDEAS[n.key].filter((i) => (counts[i.id] ?? 0) > 0).length;
+              return (
+                <TabPill
+                  key={n.key}
+                  active={tab === n.key}
+                  onClick={() => setTab(n.key)}
+                  label={n.label}
+                  progress={{ done, total }}
+                />
+              );
+            })}
             <TabPill
               active={tab === "collection"}
               onClick={() => setTab("collection")}
@@ -358,6 +412,21 @@ function Index() {
                   {bookmarkIds.length > 0 && (
                     <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
                       {bookmarkIds.length}
+                    </span>
+                  )}
+                </span>
+              }
+            />
+            <TabPill
+              active={tab === "pipeline"}
+              onClick={() => setTab("pipeline")}
+              label={
+                <span className="inline-flex items-center gap-1.5">
+                  <Kanban className="w-3.5 h-3.5" />
+                  Pipeline
+                  {pipeline.items.length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--background)]/30 text-[10px] font-bold">
+                      {pipeline.items.length}
                     </span>
                   )}
                 </span>
@@ -501,6 +570,12 @@ function Index() {
         <div className="mx-auto max-w-7xl">
           {tab === "history" ? (
             <HistoryPanel entries={history} onClear={clearHistory} />
+          ) : tab === "pipeline" ? (
+            <PipelinePanel
+              items={pipeline.items}
+              onMove={pipeline.move}
+              onRemove={pipeline.remove}
+            />
           ) : (
             <>
               <AnimatePresence mode="wait">
@@ -536,6 +611,7 @@ function Index() {
                             onRemixSelect={handleRemixSelect}
                             onExpand={(id) => !remixMode && setFocusedId(id)}
                             initialValues={prefill?.id === idea.id ? prefill.values : undefined}
+                            onAddToPipeline={pipeline.add}
                           />
                         )
                       ))}
@@ -556,6 +632,7 @@ function Index() {
                           remixSelected={remixPicks.includes(mixer.id)}
                           onRemixSelect={handleRemixSelect}
                           onExpand={(id) => !remixMode && setFocusedId(id)}
+                          onAddToPipeline={pipeline.add}
                         />
                       )}
                     </>
@@ -737,6 +814,7 @@ function Index() {
                 bookmarked={isBookmarked(focusedId)}
                 onToggleBookmark={toggleBookmark}
                 initialValues={prefill?.id === focusedId ? prefill.values : undefined}
+                onAddToPipeline={pipeline.add}
               />
             </div>
           </motion.div>
@@ -929,13 +1007,25 @@ function buildRemix(a: Idea, b: Idea): Idea {
   };
 }
 
-function TabPill({ active, onClick, label }: { active: boolean; onClick: () => void; label: React.ReactNode }) {
+function TabPill({
+  active,
+  onClick,
+  label,
+  progress,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: React.ReactNode;
+  progress?: { done: number; total: number };
+}) {
+  const pct = progress && progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
   return (
     <button
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`relative px-4 sm:px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${
+      title={progress ? `${progress.done}/${progress.total} copied` : undefined}
+      className={`relative px-4 sm:px-5 py-2.5 rounded-full text-sm font-semibold transition-colors group ${
         active ? "text-[color:var(--background)]" : "text-foreground/80 hover:text-foreground glass-subtle"
       }`}
     >
@@ -950,7 +1040,34 @@ function TabPill({ active, onClick, label }: { active: boolean; onClick: () => v
           transition={{ type: "spring", stiffness: 350, damping: 30 }}
         />
       )}
-      <span className="relative">{label}</span>
+      <span className="relative inline-flex items-center gap-1.5">
+        {label}
+        {progress && progress.done > 0 && (
+          <span
+            className={`text-[10px] font-mono opacity-70 ${
+              active ? "text-[color:var(--background)]" : "text-muted-foreground"
+            }`}
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            {progress.done}/{progress.total}
+          </span>
+        )}
+      </span>
+      {progress && !active && progress.done > 0 && (
+        <span
+          aria-hidden
+          className="absolute left-3 right-3 bottom-1 h-[2px] rounded-full overflow-hidden opacity-60"
+          style={{ background: "color-mix(in oklab, var(--copper) 18%, transparent)" }}
+        >
+          <span
+            className="block h-full rounded-full"
+            style={{
+              width: `${pct}%`,
+              background: "linear-gradient(90deg, var(--teal), var(--copper))",
+            }}
+          />
+        </span>
+      )}
     </button>
   );
 }
@@ -1283,4 +1400,336 @@ function mulberry32(a: number) {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/* =========================================================
+ * StreakBadge (nav)
+ * ========================================================= */
+function StreakBadge({ count }: { count: number }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onClick);
+    return () => window.removeEventListener("mousedown", onClick);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold glass-subtle border border-[color:var(--copper)]/30 hover:border-[color:var(--copper)]/60 transition-colors"
+        title="Visit streak"
+      >
+        <Flame className="w-3.5 h-3.5 text-[color:var(--copper)]" />
+        <span className="text-[color:var(--copper)] font-mono" style={{ fontFamily: "var(--font-mono)" }}>{count}</span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            transition={{ duration: 0.18 }}
+            className="absolute right-0 top-full mt-2 w-64 p-4 rounded-xl glass shadow-2xl z-30"
+          >
+            <p className="text-sm font-semibold text-foreground/95 mb-1">
+              You've visited <span className="text-[color:var(--copper)]">{count}</span> day{count === 1 ? "" : "s"} in a row.
+            </p>
+            <p className="text-[12px] text-muted-foreground">Keep the streak alive! Come back tomorrow to push it to {count + 1}.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* =========================================================
+ * QuickStatsBar
+ * ========================================================= */
+function QuickStatsBar({ copied, saved, pipeline, streak }: { copied: number; saved: number; pipeline: number; streak: number }) {
+  const stats = [
+    { icon: "📋", label: "copied", value: copied },
+    { icon: "🔖", label: "saved", value: saved },
+    { icon: "📁", label: "in pipeline", value: pipeline },
+    { icon: "🔥", label: "day streak", value: streak },
+  ];
+  return (
+    <section className="px-4 sm:px-6 pb-4">
+      <div className="mx-auto max-w-3xl flex flex-wrap justify-center gap-2">
+        {stats.map((s) => (
+          <span
+            key={s.label}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] glass-subtle border border-[color:var(--copper)]/15 text-foreground/80"
+          >
+            <span aria-hidden>{s.icon}</span>
+            <span className="font-mono font-bold text-foreground" style={{ fontFamily: "var(--font-mono)" }}>{s.value}</span>
+            <span className="text-muted-foreground">{s.label}</span>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+ * DailyChallengeCard
+ * ========================================================= */
+function DailyChallengeCard({
+  heroId,
+  completedToday,
+  streak,
+  onComplete,
+  onCopy,
+  onShare,
+  onLogHistory,
+  onAddToPipeline,
+  bookmarked,
+  onToggleBookmark,
+}: {
+  heroId: string;
+  completedToday: boolean;
+  streak: number;
+  onComplete: (id: string) => void;
+  onCopy: (id: string) => void;
+  onShare: (id: string, values: Record<number, string>) => void;
+  onLogHistory: (text: string) => void;
+  onAddToPipeline: (text: string, niche: string) => void;
+  bookmarked: (id: string) => boolean;
+  onToggleBookmark: (id: string) => void;
+}) {
+  const dailyIdea = useMemo<Idea>(() => {
+    const seed = hashString(new Date().toDateString() + "::ce-daily");
+    const pool = ALL_IDEAS.filter((i) => i.id !== heroId);
+    return pool[seed % pool.length] ?? ALL_IDEAS[0];
+  }, [heroId]);
+
+  const [countdown, setCountdown] = useState(() => formatCountdown(msUntilMidnight()));
+  useEffect(() => {
+    const t = setInterval(() => setCountdown(formatCountdown(msUntilMidnight())), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const [sharedFlash, setSharedFlash] = useState(false);
+  const shareToday = async () => {
+    const text =
+      `🎯 Today's Creator Engine formula:\n\n"${dailyIdea.formula}"\n\nHook: ${dailyIdea.hook}\n\nFree tool → creatorengine.netlify.app`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setSharedFlash(true);
+      setTimeout(() => setSharedFlash(false), 1600);
+    } catch {}
+  };
+
+  return (
+    <section className="px-4 sm:px-6 pb-6">
+      <div className="mx-auto max-w-4xl">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="card-brushed rounded-2xl p-5 sm:p-6 relative overflow-hidden"
+          style={{
+            border: "1px solid color-mix(in oklab, var(--copper) 35%, transparent)",
+            boxShadow: "0 18px 60px -24px color-mix(in oklab, var(--copper) 50%, transparent)",
+          }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.18em] bg-[color:var(--copper)]/15 text-[color:var(--copper)] border border-[color:var(--copper)]/40">
+                <Target className="w-3 h-3" />
+                Today's Challenge
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono glass-subtle text-foreground/80"
+                style={{ fontFamily: "var(--font-mono)" }}
+                title="Resets at midnight (local)"
+              >
+                ⏳ {countdown}
+              </span>
+              {streak > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-[color:var(--copper)]">
+                  <Flame className="w-3.5 h-3.5" /> {streak} day streak
+                </span>
+              )}
+            </div>
+          </div>
+
+          <IdeaCard
+            idea={dailyIdea}
+            forceOpen
+            onCopy={onCopy}
+            onShare={onShare}
+            onLogHistory={onLogHistory}
+            bookmarked={bookmarked(dailyIdea.id)}
+            onToggleBookmark={onToggleBookmark}
+            onAddToPipeline={onAddToPipeline}
+          />
+
+          <div className="mt-5 flex flex-wrap items-center gap-2.5">
+            {completedToday ? (
+              <span
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold"
+                style={{
+                  background: "color-mix(in oklab, var(--success) 15%, transparent)",
+                  color: "var(--success)",
+                  border: "1px solid color-mix(in oklab, var(--success) 45%, transparent)",
+                }}
+              >
+                <Check className="w-4 h-4" />
+                Challenge complete! Come back tomorrow.
+              </span>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                onClick={() => onComplete(dailyIdea.id)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm tracking-tight text-[color:var(--background)]"
+                style={{
+                  background: "linear-gradient(135deg, var(--copper), var(--copper-bright))",
+                  boxShadow: "0 12px 32px -10px color-mix(in oklab, var(--copper) 65%, transparent)",
+                }}
+              >
+                <Target className="w-4 h-4" />
+                Complete Challenge
+              </motion.button>
+            )}
+
+            <button
+              onClick={shareToday}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold glass hover:bg-[color:var(--secondary)] transition-colors"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {sharedFlash ? (
+                  <motion.span key="ok" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }} className="inline-flex items-center gap-2">
+                    <Check className="w-4 h-4 text-[color:var(--success)]" /> Copied!
+                  </motion.span>
+                ) : (
+                  <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="inline-flex items-center gap-2">
+                    <Share2 className="w-4 h-4" /> Share Today's Formula
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+ * Pipeline Kanban
+ * ========================================================= */
+function PipelinePanel({
+  items,
+  onMove,
+  onRemove,
+}: {
+  items: PipelineItem[];
+  onMove: (id: string, column: PipelineColumn) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<PipelineColumn | null>(null);
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      <div className="flex items-center gap-2 mb-4">
+        <Kanban className="w-4 h-4 text-[color:var(--copper)]" />
+        <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-[color:var(--copper)]">
+          Pipeline — {items.length} {items.length === 1 ? "item" : "items"}
+        </h2>
+        <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">Drag cards between columns</span>
+      </div>
+
+      {items.length === 0 && (
+        <p className="text-center text-sm text-muted-foreground mb-5">
+          Hit the <span className="inline-flex items-center gap-1"><Plus className="w-3 h-3" /></span> button on any formula to drop it into your pipeline.
+        </p>
+      )}
+
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {PIPELINE_COLUMNS.map((col) => {
+          const colItems = items.filter((i) => i.column === col.key);
+          const isOver = dragOver === col.key;
+          return (
+            <div
+              key={col.key}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(col.key); }}
+              onDragLeave={() => setDragOver((prev) => (prev === col.key ? null : prev))}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragId) onMove(dragId, col.key);
+                setDragId(null);
+                setDragOver(null);
+              }}
+              className={`rounded-2xl p-3 transition-all ${
+                isOver
+                  ? "bg-[color:var(--copper)]/10 ring-2 ring-[color:var(--copper)]/60"
+                  : "glass-subtle"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3 px-1">
+                <h3 className="text-[11px] uppercase tracking-[0.16em] font-bold text-[color:var(--teal)]">
+                  {col.label}
+                </h3>
+                <span className="text-[10px] font-mono text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                  {colItems.length}
+                </span>
+              </div>
+              <div className="space-y-2.5 min-h-[120px]">
+                <AnimatePresence initial={false}>
+                  {colItems.map((it) => (
+                    <motion.div
+                      key={it.id}
+                      layout
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.92 }}
+                      transition={{ duration: 0.22 }}
+                      draggable
+                      onDragStart={() => setDragId(it.id)}
+                      onDragEnd={() => { setDragId(null); setDragOver(null); }}
+                      className={`card-brushed rounded-xl p-3 cursor-grab active:cursor-grabbing ${
+                        dragId === it.id ? "opacity-50" : ""
+                      }`}
+                    >
+                      <p className="text-[13.5px] leading-snug text-foreground/95 font-medium" style={{ fontFamily: "var(--font-display)" }}>
+                        {it.text}
+                      </p>
+                      <div className="mt-2.5 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[color:var(--teal)]/12 text-[color:var(--teal)] border border-[color:var(--teal)]/30">
+                          {it.niche}
+                        </span>
+                        <span className="text-[10px] font-mono text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                          {new Date(it.addedAt).toLocaleDateString()}
+                        </span>
+                        <button
+                          onClick={() => onRemove(it.id)}
+                          aria-label="Delete"
+                          className="ml-auto w-7 h-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-[color:var(--destructive)] hover:bg-[color:var(--secondary)]/70 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {colItems.length === 0 && (
+                  <div
+                    className="rounded-xl border border-dashed border-[color:var(--copper)]/20 py-8 text-center text-[11px] text-muted-foreground/70"
+                  >
+                    Drop ideas here
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
