@@ -15,6 +15,7 @@ import {
   Share2,
   Activity,
   Expand,
+  Plus,
 } from "lucide-react";
 import type { Idea, Platform } from "@/lib/ideas";
 
