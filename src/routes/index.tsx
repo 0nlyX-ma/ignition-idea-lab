@@ -154,10 +154,14 @@ function Index() {
   const challenge = useDailyChallenge();
   const pipeline = usePipeline();
   const visitStreak = useStreakTracker();
-  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const [newIds] = useState<Set<string>>(() => getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
+
+  // Debounce search query so the grid doesn't reshuffle on every keystroke
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
   useEffect(() => {
-    setNewIds(getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
-  }, []);
+    const t = setTimeout(() => setDebouncedQuery(query), 120);
+    return () => clearTimeout(t);
+  }, [query]);
 
   // URL hash prefill: #id=X&v0=A&v1=B...
   useEffect(() => {
@@ -213,7 +217,7 @@ function Index() {
     } else {
       pool = [...IDEAS[tab]];
     }
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (q) {
       pool = pool.filter(
         (i) =>
@@ -231,7 +235,7 @@ function Index() {
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     return pool.slice(0, 12);
-  }, [tab, query, activePlatforms, seed, bookmarkIds]);
+  }, [tab, debouncedQuery, activePlatforms, seed, bookmarkIds]);
 
   const mixer = useMemo(() => {
     if (tab === "collection" || tab === "history" || tab === "pipeline" || query) return null;
@@ -578,7 +582,7 @@ function Index() {
             <>
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={`${tab}-${seed}-${query}-${[...activePlatforms].join(",")}`}
+                  key={`${tab}-${seed}-${debouncedQuery}-${[...activePlatforms].join(",")}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -607,7 +611,7 @@ function Index() {
                             remixActive={remixMode}
                             remixSelected={remixPicks.includes(idea.id)}
                             onRemixSelect={handleRemixSelect}
-                            onExpand={(id) => !remixMode && setFocusedId(id)}
+                            onExpand={(id: string) => !remixMode && setFocusedId(id)}
                             initialValues={prefill?.id === idea.id ? prefill.values : undefined}
                             onAddToPipeline={pipeline.add}
                           />
@@ -629,7 +633,7 @@ function Index() {
                           remixActive={remixMode}
                           remixSelected={remixPicks.includes(mixer.id)}
                           onRemixSelect={handleRemixSelect}
-                          onExpand={(id) => !remixMode && setFocusedId(id)}
+                          onExpand={(id: string) => !remixMode && setFocusedId(id)}
                           onAddToPipeline={pipeline.add}
                         />
                       )}

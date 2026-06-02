@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   Check,
@@ -64,7 +64,7 @@ export function buildFilled(formula: string, values: Record<number, string>) {
     .join("");
 }
 
-export function IdeaCard({
+function IdeaCardBase({
   idea,
   index = 0,
   variant = "default",
@@ -128,7 +128,8 @@ export function IdeaCard({
   const slots = useMemo(() => parseSlots(idea.formula), [idea.formula]);
 
   useEffect(() => {
-    onValuesChange?.(values);
+    if (!onValuesChange) return;
+    onValuesChange(values);
   }, [values, onValuesChange]);
 
   useEffect(() => {
@@ -177,6 +178,11 @@ export function IdeaCard({
   const isMixer = variant === "mixer";
   const isRemix = variant === "remix";
   const accent = isMixer || isRemix ? "var(--copper)" : "var(--teal)";
+  const glowBg = useTransform(
+    [glowX, glowY] as never,
+    ([x, y]: string[]) =>
+      `radial-gradient(420px circle at ${x} ${y}, color-mix(in oklab, ${accent} 26%, transparent), transparent 65%)`,
+  );
 
   const handleCardClick = () => {
     if (remixActive) {
@@ -214,20 +220,11 @@ export function IdeaCard({
           : "hover:shadow-[0_24px_70px_-22px_color-mix(in_oklab,var(--copper)_50%,transparent)]"
       } ${remixActive ? "cursor-pointer" : ""}`}
     >
-      {/* Cursor-follow glow */}
-      <motion.div
-        aria-hidden
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{
-          background: `radial-gradient(420px circle at ${glowX.get()} ${glowY.get()}, color-mix(in oklab, ${accent} 26%, transparent), transparent 65%)`,
-        }}
-      />
+      {/* Cursor-follow glow (single reactive layer) */}
       <motion.div
         aria-hidden
         className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-500"
-        style={{
-          background: `radial-gradient(380px circle at ${glowX} ${glowY}, color-mix(in oklab, ${accent} 22%, transparent), transparent 65%)`,
-        }}
+        style={{ background: glowBg }}
       />
 
       {/* TOP ROW */}
@@ -525,6 +522,30 @@ export function IdeaCard({
     </motion.article>
   );
 }
+
+export const IdeaCard = memo(IdeaCardBase, (prev, next) => {
+  return (
+    prev.idea === next.idea &&
+    prev.index === next.index &&
+    prev.variant === next.variant &&
+    prev.isNew === next.isNew &&
+    prev.bookmarked === next.bookmarked &&
+    prev.hero === next.hero &&
+    prev.layoutId === next.layoutId &&
+    prev.initialValues === next.initialValues &&
+    prev.remixActive === next.remixActive &&
+    prev.remixSelected === next.remixSelected &&
+    prev.forceOpen === next.forceOpen &&
+    prev.onCopy === next.onCopy &&
+    prev.onShare === next.onShare &&
+    prev.onLogHistory === next.onLogHistory &&
+    prev.onToggleBookmark === next.onToggleBookmark &&
+    prev.onRemixSelect === next.onRemixSelect &&
+    prev.onExpand === next.onExpand &&
+    prev.onAddToPipeline === next.onAddToPipeline &&
+    prev.onValuesChange === next.onValuesChange
+  );
+});
 
 function PlatformPreview({ length }: { length: number }) {
   let label: string;
