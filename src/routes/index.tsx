@@ -37,12 +37,10 @@ import {
   type Platform,
 } from "@/lib/ideas";
 import { IdeaCard, parseSlots, ATTRIBUTION } from "@/components/IdeaCard";
-import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
+import { useBookmarks, useCopyCounts, getNewBadgeIds, useDailyChallenge, useStreakTracker } from "@/lib/storage";
 import { useHistory, useKofiBanner } from "@/lib/history";
 import {
-  useChallenge,
   usePipeline,
-  useVisitStreak,
   hashString,
   msUntilMidnight,
   formatCountdown,
