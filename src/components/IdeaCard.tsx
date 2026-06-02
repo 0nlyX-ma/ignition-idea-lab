@@ -128,7 +128,8 @@ export function IdeaCard({
   const slots = useMemo(() => parseSlots(idea.formula), [idea.formula]);
 
   useEffect(() => {
-    onValuesChange?.(values);
+    if (!onValuesChange) return;
+    onValuesChange(values);
   }, [values, onValuesChange]);
 
   useEffect(() => {
@@ -214,19 +215,16 @@ export function IdeaCard({
           : "hover:shadow-[0_24px_70px_-22px_color-mix(in_oklab,var(--copper)_50%,transparent)]"
       } ${remixActive ? "cursor-pointer" : ""}`}
     >
-      {/* Cursor-follow glow */}
-      <motion.div
-        aria-hidden
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{
-          background: `radial-gradient(420px circle at ${glowX.get()} ${glowY.get()}, color-mix(in oklab, ${accent} 26%, transparent), transparent 65%)`,
-        }}
-      />
+      {/* Cursor-follow glow (single reactive layer) */}
       <motion.div
         aria-hidden
         className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-500"
         style={{
-          background: `radial-gradient(380px circle at ${glowX} ${glowY}, color-mix(in oklab, ${accent} 22%, transparent), transparent 65%)`,
+          background: useTransform(
+            [glowX, glowY] as never,
+            ([x, y]: string[]) =>
+              `radial-gradient(420px circle at ${x} ${y}, color-mix(in oklab, ${accent} 26%, transparent), transparent 65%)`,
+          ),
         }}
       />
 
