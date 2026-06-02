@@ -178,6 +178,11 @@ export function IdeaCard({
   const isMixer = variant === "mixer";
   const isRemix = variant === "remix";
   const accent = isMixer || isRemix ? "var(--copper)" : "var(--teal)";
+  const glowBg = useTransform(
+    [glowX, glowY] as never,
+    ([x, y]: string[]) =>
+      `radial-gradient(420px circle at ${x} ${y}, color-mix(in oklab, ${accent} 26%, transparent), transparent 65%)`,
+  );
 
   const handleCardClick = () => {
     if (remixActive) {
@@ -219,13 +224,7 @@ export function IdeaCard({
       <motion.div
         aria-hidden
         className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-500"
-        style={{
-          background: useTransform(
-            [glowX, glowY] as never,
-            ([x, y]: string[]) =>
-              `radial-gradient(420px circle at ${x} ${y}, color-mix(in oklab, ${accent} 26%, transparent), transparent 65%)`,
-          ),
-        }}
+        style={{ background: glowBg }}
       />
 
       {/* TOP ROW */}
