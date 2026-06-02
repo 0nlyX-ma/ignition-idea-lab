@@ -1531,10 +1531,14 @@ function DailyChallengeCard({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="card-brushed rounded-2xl p-5 sm:p-6 relative overflow-hidden"
+          className="card-brushed rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-colors"
           style={{
-            border: "1px solid color-mix(in oklab, var(--copper) 35%, transparent)",
-            boxShadow: "0 18px 60px -24px color-mix(in oklab, var(--copper) 50%, transparent)",
+            border: completedToday
+              ? "1px solid color-mix(in oklab, var(--success) 45%, transparent)"
+              : "1px solid color-mix(in oklab, var(--copper) 35%, transparent)",
+            boxShadow: completedToday
+              ? "0 18px 60px -24px color-mix(in oklab, var(--success) 45%, transparent)"
+              : "0 18px 60px -24px color-mix(in oklab, var(--copper) 50%, transparent)",
           }}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
