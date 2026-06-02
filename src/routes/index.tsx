@@ -582,7 +582,7 @@ function Index() {
             <>
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={`${tab}-${seed}-${query}-${[...activePlatforms].join(",")}`}
+                  key={`${tab}-${seed}-${debouncedQuery}-${[...activePlatforms].join(",")}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
