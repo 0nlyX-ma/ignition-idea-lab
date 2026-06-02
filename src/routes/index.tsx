@@ -1614,6 +1614,12 @@ function DailyChallengeCard({
               </AnimatePresence>
             </button>
           </div>
+
+          {streak > 0 && (
+            <div className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[color:var(--copper)]">
+              <Flame className="w-4 h-4" /> {streak} day streak
+            </div>
+          )}
         </motion.div>
       </div>
     </section>
