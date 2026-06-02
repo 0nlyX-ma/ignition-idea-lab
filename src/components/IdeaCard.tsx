@@ -523,6 +523,30 @@ function IdeaCardBase({
   );
 }
 
+export const IdeaCard = memo(IdeaCardBase, (prev, next) => {
+  return (
+    prev.idea === next.idea &&
+    prev.index === next.index &&
+    prev.variant === next.variant &&
+    prev.isNew === next.isNew &&
+    prev.bookmarked === next.bookmarked &&
+    prev.hero === next.hero &&
+    prev.layoutId === next.layoutId &&
+    prev.initialValues === next.initialValues &&
+    prev.remixActive === next.remixActive &&
+    prev.remixSelected === next.remixSelected &&
+    prev.forceOpen === next.forceOpen &&
+    prev.onCopy === next.onCopy &&
+    prev.onShare === next.onShare &&
+    prev.onLogHistory === next.onLogHistory &&
+    prev.onToggleBookmark === next.onToggleBookmark &&
+    prev.onRemixSelect === next.onRemixSelect &&
+    prev.onExpand === next.onExpand &&
+    prev.onAddToPipeline === next.onAddToPipeline &&
+    prev.onValuesChange === next.onValuesChange
+  );
+});
+
 function PlatformPreview({ length }: { length: number }) {
   let label: string;
   let color: string;
