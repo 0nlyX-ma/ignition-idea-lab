@@ -1499,9 +1499,12 @@ function DailyChallengeCard({
   onToggleBookmark: (id: string) => void;
 }) {
   const dailyIdea = useMemo<Idea>(() => {
-    const seed = hashString(new Date().toDateString() + "::ce-daily");
-    const pool = ALL_IDEAS.filter((i) => i.id !== heroId);
-    return pool[seed % pool.length] ?? ALL_IDEAS[0];
+    // Deterministic daily pick: hero index offset by 7 (different from hero)
+    const seed = hashString(new Date().toDateString());
+    const heroIdx = Math.max(0, ALL_IDEAS.findIndex((i) => i.id === heroId));
+    const idx = (heroIdx + 7 + (seed % ALL_IDEAS.length)) % ALL_IDEAS.length;
+    const picked = ALL_IDEAS[idx];
+    return picked && picked.id !== heroId ? picked : ALL_IDEAS[(idx + 1) % ALL_IDEAS.length];
   }, [heroId]);
 
   const [countdown, setCountdown] = useState(() => formatCountdown(msUntilMidnight()));
