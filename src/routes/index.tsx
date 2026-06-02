@@ -37,12 +37,10 @@ import {
   type Platform,
 } from "@/lib/ideas";
 import { IdeaCard, parseSlots, ATTRIBUTION } from "@/components/IdeaCard";
-import { useBookmarks, useCopyCounts, getNewBadgeIds } from "@/lib/storage";
+import { useBookmarks, useCopyCounts, getNewBadgeIds, useDailyChallenge, useStreakTracker } from "@/lib/storage";
 import { useHistory, useKofiBanner } from "@/lib/history";
 import {
-  useChallenge,
   usePipeline,
-  useVisitStreak,
   hashString,
   msUntilMidnight,
   formatCountdown,
@@ -153,9 +151,9 @@ function Index() {
   const { entries: history, log: logHistory, clear: clearHistory } = useHistory();
   const totalCopies = useMemo(() => Object.values(counts).reduce((a, b) => a + b, 0), [counts]);
   const kofi = useKofiBanner(totalCopies);
-  const challenge = useChallenge();
+  const challenge = useDailyChallenge();
   const pipeline = usePipeline();
-  const visitStreak = useVisitStreak();
+  const visitStreak = useStreakTracker();
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     setNewIds(getNewBadgeIds(ALL_IDEAS.map((i) => i.id)));
@@ -1501,9 +1499,12 @@ function DailyChallengeCard({
   onToggleBookmark: (id: string) => void;
 }) {
   const dailyIdea = useMemo<Idea>(() => {
-    const seed = hashString(new Date().toDateString() + "::ce-daily");
-    const pool = ALL_IDEAS.filter((i) => i.id !== heroId);
-    return pool[seed % pool.length] ?? ALL_IDEAS[0];
+    // Deterministic daily pick: hero index offset by 7 (different from hero)
+    const seed = hashString(new Date().toDateString());
+    const heroIdx = Math.max(0, ALL_IDEAS.findIndex((i) => i.id === heroId));
+    const idx = (heroIdx + 7 + (seed % ALL_IDEAS.length)) % ALL_IDEAS.length;
+    const picked = ALL_IDEAS[idx];
+    return picked && picked.id !== heroId ? picked : ALL_IDEAS[(idx + 1) % ALL_IDEAS.length];
   }, [heroId]);
 
   const [countdown, setCountdown] = useState(() => formatCountdown(msUntilMidnight()));
@@ -1530,10 +1531,14 @@ function DailyChallengeCard({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="card-brushed rounded-2xl p-5 sm:p-6 relative overflow-hidden"
+          className="card-brushed rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-colors"
           style={{
-            border: "1px solid color-mix(in oklab, var(--copper) 35%, transparent)",
-            boxShadow: "0 18px 60px -24px color-mix(in oklab, var(--copper) 50%, transparent)",
+            border: completedToday
+              ? "1px solid color-mix(in oklab, var(--success) 45%, transparent)"
+              : "1px solid color-mix(in oklab, var(--copper) 35%, transparent)",
+            boxShadow: completedToday
+              ? "0 18px 60px -24px color-mix(in oklab, var(--success) 45%, transparent)"
+              : "0 18px 60px -24px color-mix(in oklab, var(--copper) 50%, transparent)",
           }}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -1549,11 +1554,6 @@ function DailyChallengeCard({
               >
                 ⏳ {countdown}
               </span>
-              {streak > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-[color:var(--copper)]">
-                  <Flame className="w-3.5 h-3.5" /> {streak} day streak
-                </span>
-              )}
             </div>
           </div>
 
@@ -1579,7 +1579,7 @@ function DailyChallengeCard({
                 }}
               >
                 <Check className="w-4 h-4" />
-                Challenge complete! Come back tomorrow.
+                Done for today ✓ — come back tomorrow
               </span>
             ) : (
               <motion.button
@@ -1614,6 +1614,12 @@ function DailyChallengeCard({
               </AnimatePresence>
             </button>
           </div>
+
+          {streak > 0 && (
+            <div className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[color:var(--copper)]">
+              <Flame className="w-4 h-4" /> {streak} day streak
+            </div>
+          )}
         </motion.div>
       </div>
     </section>
