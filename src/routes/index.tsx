@@ -1579,7 +1579,7 @@ function DailyChallengeCard({
                 }}
               >
                 <Check className="w-4 h-4" />
-                Challenge complete! Come back tomorrow.
+                Done for today ✓ — come back tomorrow
               </span>
             ) : (
               <motion.button
