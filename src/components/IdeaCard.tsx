@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   Check,
@@ -64,7 +64,7 @@ export function buildFilled(formula: string, values: Record<number, string>) {
     .join("");
 }
 
-export function IdeaCard({
+function IdeaCardBase({
   idea,
   index = 0,
   variant = "default",
