@@ -1554,11 +1554,6 @@ function DailyChallengeCard({
               >
                 ⏳ {countdown}
               </span>
-              {streak > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-[color:var(--copper)]">
-                  <Flame className="w-3.5 h-3.5" /> {streak} day streak
-                </span>
-              )}
             </div>
           </div>
 
